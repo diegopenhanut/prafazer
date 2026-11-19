@@ -20,7 +20,7 @@
   --priA:#5fd7d7; --priB:#e0d060; --priC:#6f8fff; --priX:#b0b0b0;
   --proj:#ff6b6b; --ctx:#d787d7; --meta:#87d787; --link:#5fd7d7; --over:#ff5f5f; --today:#ffaf5f;
   --accent:#5fd7d7; --onaccent:#06292a; --marksel:#58501f; --focusdim:#444; --toast:#2d3036; --selout:#555a63;
-  color-scheme:dark; --ncols:6;
+  color-scheme:dark; --ncols:5; --fs:13px;
 }
 
 /* ---------- temas ---------- */
@@ -54,7 +54,7 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
-  font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.45}
+  font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--fs,13px);line-height:1.45}
 body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
@@ -72,7 +72,7 @@ input,textarea{font:inherit;color:var(--fg)}
 
 /* ---------- colunas ---------- */
 #cols{flex:1 1 auto;display:flex;overflow-x:auto;overflow-y:hidden;min-height:0}
-.col{flex:0 0 max(170px,calc(100% / var(--ncols,6)));display:flex;flex-direction:column;border-right:1px solid var(--line);min-width:0}
+.col{flex:0 0 max(170px,calc(100% / var(--ncols,5)));display:flex;flex-direction:column;border-right:1px solid var(--line);min-width:0}
 .col-h{display:flex;gap:8px;align-items:baseline;padding:2px 8px;background:var(--head);color:var(--fg);white-space:nowrap;overflow:hidden;cursor:pointer}
 .col-h .t{font-weight:700;overflow:hidden;text-overflow:ellipsis}
 .col-h .n{color:var(--dim)}
@@ -921,7 +921,10 @@ function applyTheme(id){
 const curTheme=()=>lsGet('topydo-theme')||'padrao';
 /* quantas colunas cabem na tela no computador (padrão 6) */
 const NCOLS=[2,3,4,5,6,7,8,10];
-const curCols=()=>{const n=parseInt(lsGet('topydo-ncols'),10);return n>=1&&n<=20?n:6};
+const curCols=()=>{const n=parseInt(lsGet('topydo-ncols'),10);return n>=1&&n<=20?n:5};
+const FSIZES=[11,12,13,14,15];
+const curFs=()=>{const n=parseFloat(lsGet('topydo-fs'));return n>=9&&n<=24?n:13};
+function applyFs(n){document.documentElement.style.setProperty('--fs',n+'px');lsSet('topydo-fs',String(n))}
 function applyCols(n){document.documentElement.style.setProperty('--ncols',n);lsSet('topydo-ncols',String(n))}
 async function diagInfo(){
   const out=[],ok=(b,t,d)=>out.push(`<tr><td>${b?'✓':'✗'}</td><td>${t}${d?` <span style="color:var(--dim)">${d}</span>`:''}</td></tr>`);
@@ -946,10 +949,14 @@ function showSettings(){
   <h3 style="margin-top:18px">Colunas na tela (computador)</h3>
   <div class="chips">${NCOLS.map(n=>`<button class="btn sm${n===curCols()?' pri1':''}" data-nc="${n}">${n}</button>`).join('')}</div>
   <div class="help" style="margin-top:6px">Quantas colunas cabem na largura da janela. Colunas além desse número rolam para o lado. Não vale no celular, que mostra uma por vez.</div>
+  <h3 style="margin-top:18px">Tamanho da letra (computador)</h3>
+  <div class="chips">${FSIZES.map(n=>`<button class="btn sm${n===curFs()?' pri1':''}" data-fs="${n}">${n}</button>`).join('')}</div>
+  <div class="help" style="margin-top:6px">Letra menor deixa caber mais texto por coluna: com 6 ou 7 colunas, experimente 11 ou 12.</div>
   <h3 style="margin-top:18px">Diagnóstico</h3><div id="diag" class="help">verificando…</div>
   <div class="btns"><button class="btn" data-close>Fechar</button></div>`);
   sheet.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{applyTheme(b.dataset.th);showSettings()});
   sheet.querySelectorAll('[data-nc]').forEach(b=>b.onclick=()=>{applyCols(+b.dataset.nc);showSettings()});
+  sheet.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{applyFs(+b.dataset.fs);showSettings()});
   diagInfo().then(h=>{const d=$('#diag');if(d)d.innerHTML=h});
 }
 
@@ -1058,7 +1065,7 @@ window.addEventListener('resize',()=>{if(mobile)scrollToCol(focusCol,true)});
 let initial=null;try{initial=JSON.parse(localStorage.getItem(LS)||'null')}catch(e){}
 const applyInitialSeed=!(initial&&Array.isArray(initial.lines));
 applyData(applyInitialSeed?seed():initial);
-applyTheme(curTheme());applyCols(curCols());
+applyTheme(curTheme());applyCols(curCols());applyFs(curFs());
 applyLayout();
 colsEl.focus({preventScroll:true});
 if(applyInitialSeed)lsSet(LS_SEED,'1');
