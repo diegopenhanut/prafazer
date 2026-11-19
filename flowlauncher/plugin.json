@@ -1,0 +1,12 @@
+{
+  "ID": "6f1a7c3e-8d52-4b9a-a1c4-5e2d7b9f0a31",
+  "ActionKeyword": "td",
+  "Name": "topydo",
+  "Description": "Gerencie tarefas do topydo (todo.txt no WSL)",
+  "Author": "diego",
+  "Version": "1.0.0",
+  "Language": "python",
+  "Website": "https://github.com/topydo/topydo",
+  "IcoPath": "icon.png",
+  "ExecuteFileName": "main.py"
+}
