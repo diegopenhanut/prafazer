@@ -77,7 +77,8 @@ input,textarea{font:inherit;color:var(--fg)}
 .col-h .t{font-weight:700;overflow:hidden;text-overflow:ellipsis}
 .col-h .n{color:var(--dim)}
 .col-h .f{color:var(--dim);overflow:hidden;text-overflow:ellipsis;flex:1;text-align:right;font-size:12px}
-.col-h .ed{display:none}
+.col-h .ed{display:inline;flex:0 0 auto;opacity:.75;font-size:13px;padding:0 4px;border-radius:3px}
+.col-h .ed:hover{opacity:1;background:rgba(127,127,127,.3)}
 .col.focus .col-h{background:var(--focus);color:var(--focusfg)}
 .col.focus .col-h .n,.col.focus .col-h .f{color:var(--focusdim)}
 .col-b{flex:1;overflow-y:auto;padding:2px 0 24px;overscroll-behavior:contain}
@@ -157,7 +158,7 @@ body.m .col{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;border
 body.m .col-h,body.m .col.focus .col-h{background:transparent;color:var(--dim);padding:8px 14px 4px;cursor:default}
 body.m .col-h .t,body.m .col-h .n{display:none}
 body.m .col-h .f{text-align:left;color:var(--dim)}
-body.m .col-h .ed{display:inline;color:var(--accent);font-size:13px}
+body.m .col-h .ed{display:inline;color:var(--accent);font-size:15px;opacity:1;padding:4px 8px}
 body.m .col-b{padding-bottom:110px}
 body.m .row{padding:11px 14px;gap:12px;border-bottom:1px solid var(--line);align-items:flex-start}
 body.m .row .id{display:none}
@@ -193,6 +194,7 @@ body.m #sheet textarea{font-size:14px}
   <div class="brand">todo<span>.txt</span></div>
   <button id="sync" class="tbtn">○ só neste aparelho</button>
   <div class="sp"></div>
+  <button class="tbtn desk" id="b-newcol">+ coluna</button>
   <button class="tbtn desk" id="b-theme">tema</button>
   <button class="tbtn desk" id="b-io">todo.txt</button>
   <button class="tbtn desk" id="b-help">? ajuda</button>
@@ -201,7 +203,7 @@ body.m #sheet textarea{font-size:14px}
 <div id="tabs"></div>
 <div id="cols" tabindex="-1"></div>
 <div id="foot">
-  <div id="status">clique nas colunas e use j/k/h/l · x conclui · a adiciona · : comando · ? ajuda</div>
+  <div id="status">clique nas colunas e use j/k/h/l · x conclui · a adiciona · E edita a coluna · N nova coluna · : comando · ? ajuda</div>
   <div id="keys"></div>
   <div id="cmdbar"><span id="cmdlabel">:</span><input id="cmd" autocomplete="off" spellcheck="false"></div>
 </div>
@@ -584,7 +586,7 @@ function rowHTML(it,c,i){
 function render(){
   compute();
   if(colsEl.children.length!==columns.length){
-    colsEl.innerHTML=columns.map((_,c)=>`<section class="col" data-c="${c}"><div class="col-h"><span class="t"></span><span class="n"></span><span class="f"></span><button class="ed">editar</button></div><div class="col-b"></div></section>`).join('');
+    colsEl.innerHTML=columns.map((_,c)=>`<section class="col" data-c="${c}"><div class="col-h"><span class="t"></span><span class="n"></span><span class="f"></span><button class="ed" title="Editar coluna (E)" aria-label="Editar coluna">✎</button></div><div class="col-b"></div></section>`).join('');
   }
   columns.forEach((col,c)=>{
     const el=colsEl.children[c];
@@ -1010,7 +1012,7 @@ colsEl.addEventListener('click',e=>{
   if(e.ctrlKey||e.metaKey){toggleMark(it);return}
   render();
 });
-colsEl.addEventListener('dblclick',e=>{if(!mobile&&e.target.closest('.row'))A.edit()});
+colsEl.addEventListener('dblclick',e=>{if(mobile)return;if(e.target.closest('.row'))A.edit();else{const h=e.target.closest('.col-h');if(h&&!e.target.closest('.ed'))openColSheet(+h.parentElement.dataset.c)}});
 
 /* abas e rolagem horizontal no mobile */
 function scrollToCol(c,instant){const w=colsEl.clientWidth;colsEl.scrollTo({left:c*w,behavior:instant?'auto':'smooth'})}
@@ -1027,7 +1029,7 @@ colsEl.addEventListener('scroll',()=>{
 },{passive:true});
 
 $('#fab').onclick=addSheet;
-$('#sync').onclick=showSync;$('#b-theme').onclick=showSettings;$('#b-help').onclick=showHelp;$('#b-io').onclick=showIO;$('#b-menu').onclick=showMenu;
+$('#sync').onclick=showSync;$('#b-theme').onclick=showSettings;$('#b-newcol').onclick=()=>openColSheet(null);$('#b-help').onclick=showHelp;$('#b-io').onclick=showIO;$('#b-menu').onclick=showMenu;
 $('#toastundo').onclick=()=>{$('#toast').classList.remove('on');undo()};
 $('#selbar').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const l=targets();
