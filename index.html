@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>todo · colunas (estilo topydo)</title>
+<title>PraFazer · tarefas todo.txt</title>
 <meta name="theme-color" content="#111213">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="todo.txt">
+<meta name="apple-mobile-web-app-title" content="PraFazer">
 <script>try{var w=localStorage.getItem('topydo-ws'),p=new URLSearchParams(location.search).get('ws');
 if(p==='pessoal'||p==='trabalho')w=p;else if(location.search.indexOf('code=')>=0)w=localStorage.getItem('topydo-auth-ws')||w;
 var t=localStorage.getItem('topydo-theme'+(w==='trabalho'?'-trabalho':''))||(w==='trabalho'?'solarized-light':'padrao');
@@ -646,7 +646,7 @@ function rowHTML(it,c,i){
 }
 function markWs(){
   document.querySelectorAll('#wsw button').forEach(b=>b.classList.toggle('on',b.dataset.ws===WS));
-  document.title=wsName()+' · todo.txt';
+  document.title=wsName()+' · PraFazer';
 }
 function render(){
   compute();markWs();
@@ -1036,7 +1036,8 @@ async function diagInfo(){
 }
 function showSettings(){
   const cur=curTheme();
-  openSheet(`<h3>Tema</h3><div class="chips">${THEMES.map(t=>`<button class="btn sm${t.id===cur?' pri1':''}" data-th="${t.id}">${esc(t.name)}</button>`).join('')}</div>
+  openSheet(`<div class="help" style="margin-bottom:12px">Só as tarefas (todo.txt / trabalho.txt) são sincronizadas pelo Dropbox. Tema, número de colunas, tamanho da letra e as colunas (títulos, filtros, ordenação, agrupamento) ficam só neste aparelho e navegador. O PWA instalado e o navegador também têm configurações separadas.</div>
+  <h3>Tema</h3><div class="chips">${THEMES.map(t=>`<button class="btn sm${t.id===cur?' pri1':''}" data-th="${t.id}">${esc(t.name)}</button>`).join('')}</div>
   <h3 style="margin-top:18px">Colunas na tela (computador)</h3>
   <div class="chips">${NCOLS.map(n=>`<button class="btn sm${n===curCols()?' pri1':''}" data-nc="${n}">${n}</button>`).join('')}</div>
   <div class="help" style="margin-top:6px">Quantas colunas cabem na largura da janela. Colunas além desse número rolam para o lado. Não vale no celular, que mostra uma por vez.</div>
