@@ -1,6 +1,6 @@
 /* Service worker: o app inteiro fica no cache e abre sem rede.
    Troque VERSION a cada publicação para os aparelhos pegarem a versão nova. */
-const VERSION='todo-v1';
+const VERSION='prafazer-v2';
 const SHELL=['./','index.html','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'];
 
 self.addEventListener('install',e=>{
