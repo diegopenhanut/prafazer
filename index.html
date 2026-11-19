@@ -20,7 +20,7 @@
   --priA:#5fd7d7; --priB:#e0d060; --priC:#6f8fff; --priX:#b0b0b0;
   --proj:#ff6b6b; --ctx:#d787d7; --meta:#87d787; --link:#5fd7d7; --over:#ff5f5f; --today:#ffaf5f;
   --accent:#5fd7d7; --onaccent:#06292a; --marksel:#58501f; --focusdim:#444; --toast:#2d3036; --selout:#555a63;
-  color-scheme:dark;
+  color-scheme:dark; --ncols:6;
 }
 
 /* ---------- temas ---------- */
@@ -72,7 +72,7 @@ input,textarea{font:inherit;color:var(--fg)}
 
 /* ---------- colunas ---------- */
 #cols{flex:1 1 auto;display:flex;overflow-x:auto;overflow-y:hidden;min-height:0}
-.col{flex:0 0 clamp(300px,33.33vw,480px);display:flex;flex-direction:column;border-right:1px solid var(--line);min-width:0}
+.col{flex:0 0 max(170px,calc(100% / var(--ncols,6)));display:flex;flex-direction:column;border-right:1px solid var(--line);min-width:0}
 .col-h{display:flex;gap:8px;align-items:baseline;padding:2px 8px;background:var(--head);color:var(--fg);white-space:nowrap;overflow:hidden;cursor:pointer}
 .col-h .t{font-weight:700;overflow:hidden;text-overflow:ellipsis}
 .col-h .n{color:var(--dim)}
@@ -917,6 +917,10 @@ function applyTheme(id){
   lsSet('topydo-theme',t.id);
 }
 const curTheme=()=>lsGet('topydo-theme')||'padrao';
+/* quantas colunas cabem na tela no computador (padrão 6) */
+const NCOLS=[2,3,4,5,6,7,8,10];
+const curCols=()=>{const n=parseInt(lsGet('topydo-ncols'),10);return n>=1&&n<=20?n:6};
+function applyCols(n){document.documentElement.style.setProperty('--ncols',n);lsSet('topydo-ncols',String(n))}
 async function diagInfo(){
   const out=[],ok=(b,t,d)=>out.push(`<tr><td>${b?'✓':'✗'}</td><td>${t}${d?` <span style="color:var(--dim)">${d}</span>`:''}</td></tr>`);
   const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -937,9 +941,13 @@ async function diagInfo(){
 function showSettings(){
   const cur=curTheme();
   openSheet(`<h3>Tema</h3><div class="chips">${THEMES.map(t=>`<button class="btn sm${t.id===cur?' pri1':''}" data-th="${t.id}">${esc(t.name)}</button>`).join('')}</div>
+  <h3 style="margin-top:18px">Colunas na tela (computador)</h3>
+  <div class="chips">${NCOLS.map(n=>`<button class="btn sm${n===curCols()?' pri1':''}" data-nc="${n}">${n}</button>`).join('')}</div>
+  <div class="help" style="margin-top:6px">Quantas colunas cabem na largura da janela. Colunas além desse número rolam para o lado. Não vale no celular, que mostra uma por vez.</div>
   <h3 style="margin-top:18px">Diagnóstico</h3><div id="diag" class="help">verificando…</div>
   <div class="btns"><button class="btn" data-close>Fechar</button></div>`);
   sheet.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{applyTheme(b.dataset.th);showSettings()});
+  sheet.querySelectorAll('[data-nc]').forEach(b=>b.onclick=()=>{applyCols(+b.dataset.nc);showSettings()});
   diagInfo().then(h=>{const d=$('#diag');if(d)d.innerHTML=h});
 }
 
@@ -1048,7 +1056,7 @@ window.addEventListener('resize',()=>{if(mobile)scrollToCol(focusCol,true)});
 let initial=null;try{initial=JSON.parse(localStorage.getItem(LS)||'null')}catch(e){}
 const applyInitialSeed=!(initial&&Array.isArray(initial.lines));
 applyData(applyInitialSeed?seed():initial);
-applyTheme(curTheme());
+applyTheme(curTheme());applyCols(curCols());
 applyLayout();
 colsEl.focus({preventScroll:true});
 if(applyInitialSeed)lsSet(LS_SEED,'1');
