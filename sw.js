@@ -1,6 +1,6 @@
 /* Service worker: o app inteiro fica no cache e abre sem rede.
    Troque VERSION a cada publicação para os aparelhos pegarem a versão nova. */
-const VERSION='prafazer-v8';
+const VERSION='prafazer-v9';
 const SHELL=['./','index.html','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'];
 
 self.addEventListener('install',e=>{
@@ -12,6 +12,7 @@ self.addEventListener('activate',e=>{
 self.addEventListener('fetch',e=>{
   const req=e.request,url=new URL(req.url);
   if(req.method!=='GET'||url.origin!==location.origin)return;   // Dropbox etc. passam direto
+  if(url.pathname.endsWith('/auth.html'))return;                // página do código OAuth: sempre da rede
   // stale-while-revalidate: responde do cache e atualiza em segundo plano
   e.respondWith(caches.open(VERSION).then(async cache=>{
     const hit=await cache.match(req,{ignoreSearch:true})||(req.mode==='navigate'?await cache.match('index.html'):null);

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PraFazer · código do Dropbox</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#1b2230;--sub:#667;--box:#f1f3f7;--acc:#0061fe}
+@media (prefers-color-scheme:dark){:root{--bg:#10141c;--fg:#f2f4f8;--sub:#9aa4b2;--box:#1b2230}}
+body{margin:0;padding:24px 16px;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:480px;margin:0 auto}
+h1{font-size:20px;margin:0 0 8px}
+p{color:var(--sub);margin:8px 0}
+code{display:block;word-break:break-all;background:var(--box);padding:14px;border-radius:10px;font-size:15px;margin:16px 0;user-select:all}
+button{font:inherit;padding:12px 20px;border:0;border-radius:10px;background:var(--acc);color:#fff;width:100%}
+.err{color:#d33}
+</style>
+</head>
+<body>
+<main>
+  <h1>Código de autorização</h1>
+  <div id="out"></div>
+</main>
+<script>
+/* Só mostra o código que o Dropbox devolve na URL (?code=…), para colar nas configurações do
+   mini app PraFazer no app Zepp. Não grava nem envia nada. */
+(function(){
+  var q=new URLSearchParams(location.search),out=document.getElementById('out');
+  var code=q.get('code'),err=q.get('error_description')||q.get('error');
+  function el(tag,text,cls){var e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e}
+  if(code){
+    var c=el('code',code);
+    var b=el('button','Copiar código');
+    b.onclick=function(){
+      (navigator.clipboard?navigator.clipboard.writeText(code):Promise.reject()).then(function(){b.textContent='Copiado ✓'},function(){
+        var r=document.createRange();r.selectNodeContents(c);var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selecionado: copie manualmente';
+      });
+    };
+    out.append(el('p','Copie o código abaixo e cole no campo "Código de autorização" nas configurações do PraFazer (app Zepp).'),c,b);
+  }else{
+    out.append(el('p',err?'Autorização não concluída: '+err:'Nenhum código na URL. Volte às configurações do PraFazer e toque em Autorizar no Dropbox.',err?'err':''));
+  }
+  history.replaceState(null,'',location.pathname); /* tira o código da barra de endereço */
+})();
+</script>
+</body>
+</html>
