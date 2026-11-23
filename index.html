@@ -74,8 +74,9 @@ body.m #wsw button{padding:6px 12px;font-size:13px}
 #wsw .s{display:none}
 body.m #wsw .l{display:none} body.m #wsw .s{display:inline}
 body.m #sync .l{display:none}
-body.m #top .brand{display:none}
-body.m #top{flex-wrap:nowrap;gap:8px}
+body.m #top{flex-wrap:nowrap;gap:6px;padding:10px 10px}
+#top .brand{flex:0 0 auto}
+@media (max-width:340px){body.m #top .brand{font-size:15px}}
 body.m #wsw,body.m #sync{flex:0 0 auto}
 body.m #b-menu{flex:0 0 auto;margin-left:auto;padding:6px 14px;font-size:18px}
 #sync{max-width:55vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -208,7 +209,7 @@ body.m #sheet textarea{font-size:14px}
 </head>
 <body>
 <div id="top">
-  <div class="brand">todo<span>.txt</span></div>
+  <div class="brand">Pra<span>Fazer</span></div>
   <div id="wsw" role="group" aria-label="Contexto"><button data-ws="pessoal" title="Pessoal" aria-label="Pessoal"><span class="l">Pessoal</span><span class="s">P</span></button><button data-ws="trabalho" title="Trabalho" aria-label="Trabalho"><span class="l">Trabalho</span><span class="s">T</span></button></div>
   <button id="sync" class="tbtn">○ só neste aparelho</button>
   <div class="sp"></div>
