@@ -196,7 +196,7 @@ const Notas=(()=>{
   const syncSoon=()=>{clearTimeout(timer);if(dbx.connected())timer=setTimeout(sync,1500)};
 
   /* ---------- interface ---------- */
-  let root,listEl,ta,viewEl,qEl,stEl,linksEl,curId=null,mode='edit',notes=[],saveT=null,isOpen=false,booted=false,editing=false;   // editing: há texto digitado ainda não salvo
+  let root,listEl,ta,viewEl,qEl,stEl,linksEl,curId=null,mode='view',nextEdit=false,notes=[],saveT=null,isOpen=false,booted=false,editing=false;   // editing: há texto digitado ainda não salvo
   const $n=s=>root.querySelector(s);
 
   function boot(){
@@ -242,7 +242,7 @@ body.m #notas textarea{font-size:16px}`;
     root=document.createElement('div');root.id='notas';
     root.innerHTML=`<div class="nh"><button class="nbtn" id="n-back" aria-label="Voltar">←<span class="l"> Voltar</span></button><b>Notas<span class="l"> · <span id="n-ctx"></span></span></b><span class="sp"></span><span id="n-st"></span><button class="nbtn" id="n-new" aria-label="Nova nota">+<span class="l"> Nova</span></button><button class="nbtn" id="n-more" aria-label="Mais">⋯</button></div>
 <div class="nb"><aside class="nl"><input id="n-q" type="search" placeholder="buscar nas notas…" autocomplete="off"><div id="n-list"></div></aside>
-<section class="ne"><div class="nbar"><button class="nbtn mob" id="n-tolist">‹ Lista</button><button class="nbtn" data-mode="edit">Editar</button><button class="nbtn" data-mode="view">Ver</button><span class="sp"></span><button class="nbtn" id="n-del">Excluir</button></div>
+<section class="ne"><div class="nbar"><button class="nbtn mob" id="n-tolist">‹ Lista</button><button class="nbtn" data-mode="view">Ver</button><button class="nbtn" data-mode="edit">Editar</button><span class="sp"></span><button class="nbtn" id="n-del">Excluir</button></div>
 <div id="n-links"></div><textarea id="n-ta" spellcheck="false" placeholder="Escreva em markdown…"></textarea><div id="n-view" style="display:none"></div></section></div>`;
     document.body.appendChild(root);
     listEl=$n('#n-list');ta=$n('#n-ta');viewEl=$n('#n-view');qEl=$n('#n-q');stEl=$n('#n-st');linksEl=$n('#n-links');
@@ -298,7 +298,8 @@ body.m #notas textarea{font-size:16px}`;
     const n=await get(id);if(!n)return;
     curId=id;editing=false;ta.value=n.texto||'';ta.disabled=false;
     root.classList.add('edit');showLinks(n);renderList();
-    setMode(mode==='view'&&n.texto?'view':'edit');
+    const ed=nextEdit||!(n.texto||'').replace(/^#*\s*/,'').trim();nextEdit=false;   // abre em “Ver”; nota nova ou vazia abre em “Editar”
+    setMode(ed?'edit':'view');
     if(focus&&mode==='edit'&&!isCoarse())ta.focus();
   }
   async function flush(){
@@ -333,7 +334,7 @@ body.m #notas textarea{font-size:16px}`;
     const created=today(),tit=texto!=null?slug(titleOf({texto,nome:''})):'',nome=await uniqueName(WS,created+'-'+(tit||'nova-nota')+'.md');
     const n={id:idOf(WS,nome),ws:WS,nome,texto:texto!=null?texto:'# ',rev:'',mod:Date.now(),sujo:true,auto:true,created};
     await put(n);await refresh();
-    mode='edit';await select(n.id,focus!==false);
+    nextEdit=true;await select(n.id,focus!==false);
     if(texto==null){ta.focus();ta.setSelectionRange(2,2)}
     return n;
   }
@@ -387,7 +388,7 @@ body.m #notas textarea{font-size:16px}`;
     snapshot();
     const raw=build(it.t,{text:setTag(it.t.text,'note',sl)});
     it.raw=raw;it.t=parse(raw);commit();
-    await open(n.nome);
+    nextEdit=true;await open(n.nome);
   }
 
   function init(){
