@@ -79,6 +79,7 @@ body.m #sync{max-width:28vw}
 #tabs{display:none}
 
 /* ---------- colunas ---------- */
+#cols:focus,#cols:focus-visible{outline:none}
 #cols{flex:1 1 auto;display:flex;overflow-x:auto;overflow-y:hidden;min-height:0}
 .col{flex:0 0 max(170px,calc(100% / var(--ncols,5)));display:flex;flex-direction:column;border-right:1px solid var(--line);min-width:0}
 .col-h{display:flex;gap:8px;align-items:baseline;padding:2px 8px;background:var(--head);color:var(--fg);white-space:nowrap;overflow:hidden;cursor:pointer}
@@ -278,6 +279,7 @@ function parse(raw){
   if(t.done&&!t.pri&&/^[A-Za-z]$/.test(t.tags.pri||''))t.pri=t.tags.pri.toUpperCase();
   t.due=isDate(t.tags.due)?t.tags.due:null;
   t.start=isDate(t.tags.t)?t.tags.t:null;
+  m=(t.tags.time||'').match(/^([01]?\d|2[0-3]):([0-5]\d)$/);t.time=m?m[1].padStart(2,'0')+':'+m[2]:null;
   return t;
 }
 function setTag(text,k,v){
@@ -631,7 +633,7 @@ function relLabel(t){
   if(!t.due||t.done)return '';
   const d=diffDays(parseD(t.due),todayD());
   const l=d===0?'hoje':d===1?'amanhã':d===-1?'ontem':d>1?`em ${d} dias`:`há ${-d} dias`;
-  return ` <span class="rel${d<0?' over':d===0?' today':''}">(${l})</span>`;
+  return ` <span class="rel${d<0?' over':d===0?' today':''}">(${l}${t.time?' '+t.time:''})</span>`;
 }
 function rowHTML(it,c,i){
   const t=it.t,cls=['row'];
