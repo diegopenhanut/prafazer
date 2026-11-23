@@ -274,7 +274,12 @@ function relDate(v){
   if(s in WD){const t=todayD();const n=((WD[s]-t.getDay())+7)%7||7;return fmt(addDays(t,n));}
   return null;
 }
-const normalizeInput=text=>text.replace(/(^|\s)(due|t):(\S+)/g,(all,sp,k,v)=>{const r=relDate(v);return r?`${sp}${k}:${r}`:all});
+const normalizeInput=text=>{
+  text=text.replace(/(^|\s)(due|t):(\S+)/g,(all,sp,k,v)=>{const r=relDate(v);return r?`${sp}${k}:${r}`:all});
+  // time:HH:MM válido sem due: digitado → acrescenta due:hoje
+  if(/(^|\s)time:([01]?\d|2[0-3]):[0-5]\d(\s|$)/.test(text)&&!/(^|\s)due:\S+/.test(text))text+=' due:'+today();
+  return text;
+};
 const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const isDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s||'');
 
