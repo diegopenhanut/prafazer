@@ -51,6 +51,14 @@ const Notas=(()=>{
   const dir=()=>(dbx.cfg.notes||(WS==='trabalho'?'/trabalho-notas':'/notas')).replace(/\/+$/,'');
   const fmtDate=ms=>{const d=new Date(ms),t=new Date();
     return d.toDateString()===t.toDateString()?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})};
+  /* etiquetas +projeto / @contexto no texto da nota (mesmo estilo das tarefas) */
+  const TAGRE=/(^|[\s(>])([+@])([\p{L}\p{N}_][\p{L}\p{N}_.\-\/]*)/gu;
+  const cleanTag=v=>v.replace(/[.\-\/]+$/,'');
+  function tagsOf(text){
+    const t=(text||'').replace(/```[\s\S]*?(```|$)/g,' ').replace(/`[^`\n]*`/g,' '),p=[],c=[];
+    for(const m of t.matchAll(TAGRE)){const v=cleanTag(m[3]).toLowerCase();if(!v)continue;const a=m[2]==='+'?p:c;if(!a.includes(v))a.push(v)}
+    return{p,c};
+  }
   async function uniqueName(ws,nome){
     let n=nome,i=2;
     while(await get(idOf(ws,n)))n=base(nome)+'-'+(i++)+'.md';
@@ -64,6 +72,8 @@ const Notas=(()=>{
     s=s.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/(^|[^*\w])\*([^*\s][^*]*)\*/g,'$1<i>$2</i>').replace(/~~([^~]+)~~/g,'<s>$1</s>');
     s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g,(m,t,u)=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`);
     s=s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g,(m,p,u)=>`${p}<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+    s=s.replace(TAGRE,(m,pre,sg,name)=>{const v=cleanTag(name);if(!v)return m;const k=sg==='+'?'p':'c';
+      return `${pre}<span class="tg ${k}" data-k="${k}" data-v="${v.toLowerCase()}">${sg}${v}</span>${name.slice(v.length)}`});
     return s.replace(/\u0000(\d+)\u0000/g,(m,i)=>`<code>${codes[+i]}</code>`);   // o trecho já foi escapado
   }
   function md(src){
@@ -196,7 +206,7 @@ const Notas=(()=>{
   const syncSoon=()=>{clearTimeout(timer);if(dbx.connected())timer=setTimeout(sync,1500)};
 
   /* ---------- interface ---------- */
-  let root,listEl,ta,viewEl,qEl,stEl,linksEl,curId=null,mode='view',nextEdit=false,notes=[],saveT=null,isOpen=false,booted=false,editing=false;   // editing: há texto digitado ainda não salvo
+  let root,sideEl,listEl,ta,viewEl,qEl,stEl,linksEl,curId=null,mode='view',nextEdit=false,notes=[],tagMap=new Map(),flt=null,saveT=null,isOpen=false,booted=false,editing=false;   // editing: há texto digitado ainda não salvo
   const $n=s=>root.querySelector(s);
 
   function boot(){
@@ -211,6 +221,13 @@ const Notas=(()=>{
 #notas .nbtn.on{background:var(--accent);color:var(--onaccent);border-color:var(--accent);font-weight:700}
 #notas #n-st{color:var(--dim);font-size:12px;white-space:nowrap}
 #notas .nb{flex:1;display:flex;min-height:0}
+#notas .ns{flex:0 0 170px;overflow-y:auto;border-right:1px solid var(--line);padding:6px 0;font-size:13px}
+#notas .ns h4{margin:10px 12px 4px;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+#notas .si{display:flex;justify-content:space-between;gap:8px;padding:5px 12px;cursor:pointer}
+#notas .si:hover{background:var(--cur)} #notas .si.cur{background:var(--selbg);font-weight:700}
+#notas .si .n{color:var(--dim)} #notas .si.p .v{color:var(--proj)} #notas .si.c .v{color:var(--ctx)}
+#notas.noside .ns{display:none}
+#notas .tg.p{color:var(--proj)} #notas .tg.c{color:var(--ctx)} #notas #n-view .tg{cursor:pointer}
 #notas .nl{flex:0 0 320px;display:flex;flex-direction:column;border-right:1px solid var(--line);min-height:0}
 #notas .nl input{margin:8px;padding:7px 9px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;outline:none;font:inherit}
 #notas .nl input:focus{border-color:var(--accent)}
@@ -234,23 +251,32 @@ const Notas=(()=>{
 #notas #n-view a{color:var(--link)} #notas #n-view hr{border:0;border-top:1px solid var(--line)}
 #notas #n-view ul,#notas #n-view ol{padding-left:1.4em}
 #notas .mob{display:none}
+body.m #notas .nb{flex-direction:column} body.m #notas #n-side-t{display:none}
+body.m #notas .ns{flex:0 0 auto;display:flex;flex-direction:row;align-items:center;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--line);padding:4px 6px;white-space:nowrap}
+body.m #notas .ns h4{display:none}
+body.m #notas .si{flex:0 0 auto;padding:6px 10px;margin-right:6px;border:1px solid var(--line);border-radius:14px;gap:6px}
+body.m #notas.edit .ns{display:none}
 body.m #notas .nl{flex:1;border-right:0} body.m #notas .ne{display:none}
 body.m #notas.edit .nl{display:none} body.m #notas.edit .ne{display:flex}
 body.m #notas .mob{display:inline-block} body.m #notas .nbtn{padding:8px 12px} body.m #notas .nh .l{display:none} body.m #notas .nh{gap:6px}
 body.m #notas textarea{font-size:16px}`;
     document.head.appendChild(css);
     root=document.createElement('div');root.id='notas';
-    root.innerHTML=`<div class="nh"><button class="nbtn" id="n-back" aria-label="Voltar">←<span class="l"> Voltar</span></button><b>Notas<span class="l"> · <span id="n-ctx"></span></span></b><span class="sp"></span><span id="n-st"></span><button class="nbtn" id="n-new" aria-label="Nova nota">+<span class="l"> Nova</span></button><button class="nbtn" id="n-more" aria-label="Mais">⋯</button></div>
-<div class="nb"><aside class="nl"><input id="n-q" type="search" placeholder="buscar nas notas…" autocomplete="off"><div id="n-list"></div></aside>
+    root.innerHTML=`<div class="nh"><button class="nbtn" id="n-back" aria-label="Voltar">←<span class="l"> Voltar</span></button><button class="nbtn" id="n-side-t" aria-label="Etiquetas" title="Mostrar/ocultar etiquetas">☰</button><b>Notas<span class="l"> · <span id="n-ctx"></span></span></b><span class="sp"></span><span id="n-st"></span><button class="nbtn" id="n-new" aria-label="Nova nota">+<span class="l"> Nova</span></button><button class="nbtn" id="n-more" aria-label="Mais">⋯</button></div>
+<div class="nb"><aside class="ns" id="n-side"></aside><aside class="nl"><input id="n-q" type="search" placeholder="buscar nas notas…" autocomplete="off"><div id="n-list"></div></aside>
 <section class="ne"><div class="nbar"><button class="nbtn mob" id="n-tolist">‹ Lista</button><button class="nbtn" data-mode="view">Ver</button><button class="nbtn" data-mode="edit">Editar</button><span class="sp"></span><button class="nbtn" id="n-del">Excluir</button></div>
 <div id="n-links"></div><textarea id="n-ta" spellcheck="false" placeholder="Escreva em markdown…"></textarea><div id="n-view" style="display:none"></div></section></div>`;
     document.body.appendChild(root);
-    listEl=$n('#n-list');ta=$n('#n-ta');viewEl=$n('#n-view');qEl=$n('#n-q');stEl=$n('#n-st');linksEl=$n('#n-links');
+    sideEl=$n('#n-side');listEl=$n('#n-list');ta=$n('#n-ta');viewEl=$n('#n-view');qEl=$n('#n-q');stEl=$n('#n-st');linksEl=$n('#n-links');
     $n('#n-back').onclick=close;$n('#n-new').onclick=()=>create();$n('#n-del').onclick=remove;
     $n('#n-tolist').onclick=()=>{flush();root.classList.remove('edit')};
     $n('#n-more').onclick=moreMenu;
     root.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
     qEl.oninput=renderList;
+    try{if(localStorage.getItem('prafazer-notas-side')==='0')root.classList.add('noside')}catch(e){}
+    $n('#n-side-t').onclick=()=>{const off=root.classList.toggle('noside');try{localStorage.setItem('prafazer-notas-side',off?'0':'1')}catch(e){}};
+    sideEl.onclick=e=>{const it=e.target.closest('.si');if(it)setFlt(it.dataset.k,it.dataset.v)};
+    viewEl.onclick=e=>{const t=e.target.closest('.tg');if(t&&t.dataset.k){flush();root.classList.remove('edit');setFlt(t.dataset.k,t.dataset.v,true)}};
     ta.oninput=()=>{editing=true;clearTimeout(saveT);saveT=setTimeout(flush,250)};
     listEl.onclick=e=>{const it=e.target.closest('.ni');if(it)select(it.dataset.id)};
     root.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();if(mobileEdit())root.classList.remove('edit');else close()}});
@@ -268,16 +294,59 @@ body.m #notas textarea{font-size:16px}`;
   }
   async function refresh(){
     notes=(await allOf(WS)).filter(n=>!n.del).sort((a,b)=>b.mod-a.mod);
+    indexTags();
     if(isOpen){
       const c=curId&&notes.find(n=>n.id===curId);
       if(c&&!editing&&ta.value!==(c.texto||'')){ta.value=c.texto||'';if(mode==='view')viewEl.innerHTML=md(ta.value);showLinks(c)}
-      renderList();
+      renderSide();renderList();
     }
   }
   function renderList(){
     const q=(qEl.value||'').trim().toLowerCase();
-    const l=notes.filter(n=>!q||(n.texto||'').toLowerCase().includes(q)||n.nome.toLowerCase().includes(q));
-    listEl.innerHTML=l.length?l.map(n=>`<div class="ni${n.id===curId?' cur':''}" data-id="${esc(n.id)}"><div class="t">${esc(titleOf(n))}</div><div class="s">${esc(snippetOf(n))}</div><div class="d">${fmtDate(n.mod)}${n.sujo?' <span class="u">● não enviada</span>':''}</div></div>`).join(''):`<div class="nempty">${q?'Nada encontrado.':'Nenhuma nota ainda. Toque em “+ Nova”.'}</div>`;
+    const l=notes.filter(n=>passFlt(n)&&(!q||(n.texto||'').toLowerCase().includes(q)||n.nome.toLowerCase().includes(q)));
+    const tg=n=>{const t=tagMap.get(n.id)||NOTAGS;return t.p.map(x=>`<span class="tg p">+${esc(x)}</span>`).concat(t.c.map(x=>`<span class="tg c">@${esc(x)}</span>`)).join(' ')};
+    listEl.innerHTML=l.length?l.map(n=>`<div class="ni${n.id===curId?' cur':''}" data-id="${esc(n.id)}"><div class="t">${esc(titleOf(n))}</div><div class="s">${esc(snippetOf(n))}</div><div class="d">${fmtDate(n.mod)}${n.sujo?' <span class="u">● não enviada</span>':''} ${tg(n)}</div></div>`).join(''):`<div class="nempty">${q||flt?'Nada encontrado.':'Nenhuma nota ainda. Toque em “+ Nova”.'}</div>`;
+  }
+  /* índice de etiquetas: as do texto + as herdadas das tarefas ligadas (note:slug) */
+  const NOTAGS={p:[],c:[],ip:[],ic:[]};
+  function indexTags(){
+    const bySlug=new Map();
+    for(const i of (typeof items!=='undefined'?items:[])){
+      const sl=i.t.tags.note;if(!sl)continue;
+      const k=sl.toLowerCase().replace(/\.md$/,'');if(!bySlug.has(k))bySlug.set(k,[]);bySlug.get(k).push(i);
+    }
+    tagMap=new Map();
+    for(const n of notes){
+      const own=tagsOf(n.texto),p=new Set(own.p),c=new Set(own.c),ip=[],ic=[];
+      for(const i of bySlug.get(base(n.nome).toLowerCase())||[]){
+        for(const x of i.t.projects)if(!p.has(x)){p.add(x);ip.push(x)}
+        for(const x of i.t.contexts)if(!c.has(x)){c.add(x);ic.push(x)}
+      }
+      tagMap.set(n.id,{p:[...p],c:[...c],ip,ic});
+    }
+  }
+  const passFlt=n=>{
+    if(!flt)return true;
+    const t=tagMap.get(n.id)||NOTAGS;
+    return flt.k==='none'?!t.p.length&&!t.c.length:(flt.k==='p'?t.p:t.c).includes(flt.v);
+  };
+  function renderSide(){
+    if(!sideEl)return;
+    const P=new Map(),C=new Map();let none=0;
+    for(const n of notes){
+      const t=tagMap.get(n.id)||NOTAGS;
+      if(!t.p.length&&!t.c.length)none++;
+      t.p.forEach(x=>P.set(x,(P.get(x)||0)+1));t.c.forEach(x=>C.set(x,(C.get(x)||0)+1));
+    }
+    if(flt&&flt.k!=='none'&&!(flt.k==='p'?P:C).has(flt.v))flt=null;
+    const row=(k,v,label,cnt,cls)=>`<div class="si ${cls||''}${(!flt&&k==='all')||(flt&&flt.k===k&&flt.v===v)?' cur':''}" data-k="${k}" data-v="${esc(v)}"><span class="v">${esc(label)}</span><span class="n">${cnt}</span></div>`;
+    const list=(M,k,sg)=>[...M].sort((a,b)=>a[0].localeCompare(b[0])).map(([v,c])=>row(k,v,sg+v,c,k)).join('');
+    sideEl.innerHTML=row('all','','Todas',notes.length)+row('none','','Sem etiqueta',none)
+      +(P.size?'<h4>Projetos</h4>'+list(P,'p','+'):'')+(C.size?'<h4>Contextos</h4>'+list(C,'c','@'):'');
+  }
+  function setFlt(k,v,keepSame){
+    flt=(k==='all'||(!keepSame&&flt&&flt.k===k&&flt.v===v))?null:{k,v};
+    renderSide();renderList();
   }
   function setMode(m){
     mode=m;
@@ -291,7 +360,11 @@ body.m #notas textarea{font-size:16px}`;
   function showLinks(n){
     const sl=base(n.nome);
     const l=(typeof items!=='undefined'?items:[]).filter(i=>i.t.tags.note&&i.t.tags.note.toLowerCase()===sl.toLowerCase());
-    linksEl.innerHTML=l.length?'Tarefas ligadas: '+l.map(i=>esc(i.t.text.replace(/\s+note:\S+/,''))).join(' · '):'';
+    const parts=[];
+    if(l.length)parts.push('Tarefas ligadas: '+l.map(i=>{const x=esc(i.t.text.replace(/\s+note:\S+/,''));return i.t.done?`<span style="color:var(--dim)">${x} (concluída)</span>`:x}).join(' · '));
+    const t=tagMap.get(n.id),inh=t?t.ip.map(x=>'+'+x).concat(t.ic.map(x=>'@'+x)):[];
+    if(inh.length)parts.push('Etiquetas herdadas das tarefas: '+esc(inh.join(' ')));
+    linksEl.innerHTML=parts.join('<br>');
   }
   async function select(id,focus){
     await flush();
@@ -332,7 +405,7 @@ body.m #notas textarea{font-size:16px}`;
   async function create(texto,focus){
     await flush();
     const created=today(),tit=texto!=null?slug(titleOf({texto,nome:''})):'',nome=await uniqueName(WS,created+'-'+(tit||'nova-nota')+'.md');
-    const n={id:idOf(WS,nome),ws:WS,nome,texto:texto!=null?texto:'# ',rev:'',mod:Date.now(),sujo:true,auto:true,created};
+    const n={id:idOf(WS,nome),ws:WS,nome,texto:texto!=null?texto:'# '+(flt&&flt.k!=='none'?'\n\n'+(flt.k==='p'?'+':'@')+flt.v:''),rev:'',mod:Date.now(),sujo:true,auto:true,created};
     await put(n);await refresh();
     nextEdit=true;await select(n.id,focus!==false);
     if(texto==null){ta.focus();ta.setSelectionRange(2,2)}
