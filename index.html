@@ -222,6 +222,7 @@ body.m #sheet textarea{font-size:14px}
   <div class="sp"></div>
   <button class="tbtn desk" id="b-newcol">+ coluna</button>
   <button class="tbtn desk" id="b-theme">tema</button>
+  <button class="tbtn desk" id="b-cal">calendário</button>
   <button class="tbtn desk" id="b-notes">notas</button>
   <button class="tbtn desk" id="b-io">todo.txt</button>
   <button class="tbtn desk" id="b-help">? ajuda</button>
@@ -933,7 +934,7 @@ function showHelp(){
   ${mobile?`<div class="help" style="margin-bottom:8px"><b>No celular:</b> deslize para os lados para trocar de coluna (ou toque nas abas). Toque no círculo para concluir, toque na tarefa para ver as ações, segure para selecionar várias. O botão + adiciona. Toque em “editar” no topo da coluna para mudar filtro/ordenação.</div>`:''}
   <table class="keys">
   ${S('Navegação')}${K('j / ↓ · k / ↑','desce / sobe')}${K('h / ← · l / →','coluna anterior / próxima')}${K('gg · G','primeira / última tarefa')}${K('0 · $','primeira / última coluna')}${K('PgUp · PgDn','página acima / abaixo')}
-  ${S('Tarefas')}${K('x','concluir / reabrir (respeita rec:)')}${K('d','excluir (confirma com y/n)')}${K('e','editar')}${K('a · n','adicionar (herda +projeto/@contexto do filtro)')}${K('pr + letra','define prioridade (pr- remove)')}${K('pp','adiar a data due: (1d, 2w, 1m, 3b…)')}${K('ps','adiar due: e t: juntos')}${K('m · Enter · Espaço','marcar / desmarcar')}${K('Ctrl+A','marcar tudo na coluna')}${K('o','abrir / criar a nota da tarefa (tag note:)')}${K('B','abrir as notas')}${K('u','desfazer')}${K('.','repetir a última ação')}${K('Esc','limpar marcações')}
+  ${S('Tarefas')}${K('x','concluir / reabrir (respeita rec:)')}${K('d','excluir (confirma com y/n)')}${K('e','editar')}${K('a · n','adicionar (herda +projeto/@contexto do filtro)')}${K('pr + letra','define prioridade (pr- remove)')}${K('pp','adiar a data due: (1d, 2w, 1m, 3b…)')}${K('ps','adiar due: e t: juntos')}${K('m · Enter · Espaço','marcar / desmarcar')}${K('Ctrl+A','marcar tudo na coluna')}${K('o','abrir / criar a nota da tarefa (tag note:)')}${K('s · B','abrir as notas (dentro das notas, s volta às tarefas)')}${K('c','abrir o calendário')}${K('u','desfazer')}${K('.','repetir a última ação')}${K('Esc','limpar marcações')}
   ${S('Colunas')}${K('N','nova coluna')}${K('E','editar coluna')}${K('D','excluir coluna')}${K('Y','duplicar coluna')}${K('H · L','mover coluna para esquerda / direita')}
   ${S('Linha de comando ( : )')}${K('add &lt;texto&gt;','adiciona')}${K('do 1 3','conclui')}${K('del 2','exclui')}${K('pri 4 A · depri 4','prioridade')}${K('postpone [-s] 5 1w','adia')}${K('edit 3','edita')}${K('revert','desfaz')}
   ${S('Datas ao digitar')}${K('due:hoje · due:amanhã','também tod / tom')}${K('due:3d · due:2w · due:1m','relativas a hoje')}${K('due:sex · t:mon','próximo dia da semana')}
@@ -954,6 +955,7 @@ function showIO(){
 }
 function showMenu(){
   openSheet(`<h3>Menu</h3><div class="btns" style="flex-direction:column">
+  <button class="btn" id="mn-cal">Calendário</button>
   <button class="btn" id="mn-nt">Notas</button>
   <button class="btn" id="mn-e">Editar coluna “${esc(columns[focusCol].title)}”</button>
   <button class="btn" id="mn-n">Nova coluna</button>
@@ -963,7 +965,7 @@ function showMenu(){
   <button class="btn" id="mn-io">Importar / exportar todo.txt</button>
   <button class="btn" id="mn-h">Ajuda e atalhos</button>
   <button class="btn" data-close>Fechar</button></div>`);
-  $('#mn-nt').onclick=()=>{closeSheet();Notas.open()};$('#mn-e').onclick=()=>openColSheet(focusCol);$('#mn-n').onclick=()=>openColSheet(null);
+  $('#mn-cal').onclick=()=>{closeSheet();Cal.open()};$('#mn-nt').onclick=()=>{closeSheet();Notas.open()};$('#mn-e').onclick=()=>openColSheet(focusCol);$('#mn-n').onclick=()=>openColSheet(null);
   $('#mn-u').onclick=()=>{closeSheet();undo()};$('#mn-io').onclick=showIO;$('#mn-th').onclick=showSettings;$('#mn-sy').onclick=showSync;$('#mn-h').onclick=showHelp;
 }
 
@@ -1090,14 +1092,14 @@ const KEYMAP={
   'm':()=>toggleMark(),'Enter':()=>toggleMark(),' ':()=>toggleMark(),'C-a':markAll,
   'u':undo,'.':A.repeat,':':A.cmd,'?':showHelp,'Escape':A.reset,
   'pp':A.pp,'ps':A.ps,'pr':()=>{buf='pr';showKeys();status('prioridade: tecle A–Z (ou - para remover)')},
-  'B':()=>Notas.open(),'o':()=>{const it=cur();if(it)Notas.forTask(it)},
+  'B':()=>Notas.open(),'s':()=>Notas.open(),'c':()=>Cal.open(),'o':()=>{const it=cur();if(it)Notas.forTask(it)},
   'W':()=>switchWorkspace(WS==='pessoal'?'trabalho':'pessoal'),
   'N':()=>openColSheet(null),'E':()=>openColSheet(focusCol),'D':()=>delCol(false),'Y':copyCol,
   'H':()=>swapCol(-1),'L':()=>swapCol(1),
 };
 const KEYS=Object.keys(KEYMAP);
 document.addEventListener('keydown',e=>{
-  if(document.body.classList.contains('notas-on')&&!isSheet())return;
+  if((document.body.classList.contains('notas-on')||document.body.classList.contains('cal-on'))&&!isSheet())return;
   if(isSheet()){if(e.key==='Escape'){e.preventDefault();closeSheet()}return}
   if(e.target.matches&&e.target.matches('input,textarea'))return;
   if(e.metaKey||e.altKey)return;
@@ -1159,7 +1161,7 @@ colsEl.addEventListener('scroll',()=>{
 
 $('#fab').onclick=()=>addSheet();
 $('#wsw').addEventListener('click',e=>{const b=e.target.closest('button');if(b)switchWorkspace(b.dataset.ws)});
-$('#sync').onclick=showSync;$('#b-theme').onclick=showSettings;$('#b-newcol').onclick=()=>openColSheet(null);$('#b-help').onclick=showHelp;$('#b-io').onclick=showIO;$('#b-notes').onclick=()=>Notas.open();$('#b-menu').onclick=showMenu;
+$('#sync').onclick=showSync;$('#b-theme').onclick=showSettings;$('#b-newcol').onclick=()=>openColSheet(null);$('#b-help').onclick=showHelp;$('#b-io').onclick=showIO;$('#b-notes').onclick=()=>Notas.open();$('#b-cal').onclick=()=>Cal.open();$('#b-menu').onclick=showMenu;
 $('#toastundo').onclick=()=>{$('#toast').classList.remove('on');undo()};
 $('#selbar').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const l=targets();
@@ -1201,5 +1203,6 @@ else if(qQuick||qShare)setTimeout(()=>{mobile?addSheet(qShare||undefined):prompt
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 <script src="notas.js"></script>
+<script src="calendario.js"></script>
 </body>
 </html>

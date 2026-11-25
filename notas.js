@@ -281,10 +281,20 @@ body.m #notas.edit #n-new{display:none}`;
     viewEl.onclick=e=>{const t=e.target.closest('.tg');if(t&&t.dataset.k){flush();root.classList.remove('edit');setFlt(t.dataset.k,t.dataset.v,true)}};
     ta.oninput=()=>{editing=true;clearTimeout(saveT);saveT=setTimeout(flush,250)};
     listEl.onclick=e=>{const it=e.target.closest('.ni');if(it)select(it.dataset.id)};
-    root.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();if(mobileEdit())root.classList.remove('edit');else close()}});
+    root.addEventListener('keydown',e=>{if(e.key==='Escape'&&!isSheet()){e.preventDefault();if(mobileEdit())root.classList.remove('edit');else close()}});
+    document.addEventListener('keydown',e=>{
+      if(!isOpen||isSheet()||e.ctrlKey||e.metaKey||e.altKey)return;
+      if(e.target.matches&&e.target.matches('input,textarea'))return;
+      const k=e.key,f={s:close,a:()=>create(),d:remove,'?':help}[k];
+      if(f){e.preventDefault();f()}
+    });
     addEventListener('beforeunload',()=>{flush()});
     addEventListener('pagehide',()=>{flush()});
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush()});
+  }
+  function help(){
+    const K=(k,d)=>`<tr><td>${k}</td><td>${d}</td></tr>`;
+    openSheet(`<h3>Atalhos das notas</h3><table class="keys">${K('s','voltar às tarefas')}${K('a','nova nota')}${K('d','excluir a nota aberta (pede confirmação)')}${K('?','esta ajuda')}${K('Esc','voltar / fechar as notas')}</table><div class="btns"><button class="btn" data-close>Fechar</button></div>`);
   }
   const mobileEdit=()=>document.body.classList.contains('m')&&root.classList.contains('edit');
 
