@@ -136,7 +136,7 @@ body.m #cal #c-new{position:fixed;right:18px;bottom:calc(20px + env(safe-area-in
 
   /* ---------- teclado ---------- */
   function onKey(e){
-    if(!isOpen||isSheet()||e.ctrlKey||e.metaKey||e.altKey)return;
+    if(!isOpen||isSheet()||e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey)return;
     if(e.target.matches&&e.target.matches('input,textarea'))return;
     const k=e.key,inList=focus==='list'&&dayList().length;
     const day=n=>goto(fmt(addDays(parseD(sel),n)));

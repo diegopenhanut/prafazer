@@ -308,9 +308,9 @@ body.m #notas.edit #n-new{display:none}`;
     viewEl.onclick=e=>{const t=e.target.closest('.tg');if(t&&t.dataset.k){flush();root.classList.remove('edit');setFlt(t.dataset.k,t.dataset.v,true)}};
     ta.oninput=()=>{editing=true;clearTimeout(saveT);saveT=setTimeout(flush,250)};
     listEl.onclick=e=>{const it=e.target.closest('.ni');if(it)select(it.dataset.id)};
-    root.addEventListener('keydown',e=>{if(e.key==='Escape'&&!isSheet()){e.preventDefault();if(mobileEdit())root.classList.remove('edit');else close()}});
     document.addEventListener('keydown',e=>{
-      if(!isOpen||isSheet()||e.ctrlKey||e.metaKey||e.altKey)return;
+      if(!isOpen||isSheet()||e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey)return;
+      if(e.key==='Escape'){e.preventDefault();if(mobileEdit())root.classList.remove('edit');else close();return}
       if(e.target.matches&&e.target.matches('input,textarea'))return;
       const k=e.key,f={s:close,a:()=>create(),d:remove,'?':help}[k];
       if(f){e.preventDefault();f()}
