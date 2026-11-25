@@ -4,7 +4,7 @@
   "Name": "topydo",
   "Description": "Gerencie tarefas do topydo (todo.txt no WSL)",
   "Author": "diego",
-  "Version": "1.0.0",
+  "Version": "1.1.0",
   "Language": "python",
   "Website": "https://github.com/topydo/topydo",
   "IcoPath": "icon.png",

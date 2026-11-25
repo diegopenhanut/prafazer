@@ -4,6 +4,8 @@ import json
 import os
 import subprocess
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import dbx
 from urllib.parse import quote
 
 TOPYDO = r"C:\Users\diego\AppData\Local\Python\pythoncore-3.15-64\Scripts\topydo.exe"
@@ -48,13 +50,15 @@ def query(text):
     low = text.lower()
     if low == "cols":
         return [result("Abrir interface de colunas", "topydo columns", ("open_cols",))]
+    if low == "auth":
+        return [result("Autorizar o Dropbox para o plugin", "Abre um terminal (uma vez só)", ("auth",))]
     kw = low.split(" ", 1)[0]
     if kw in PWA_CTX:
         ws, nome = PWA_CTX[kw]
         body = text[len(kw):].strip()
         if not body:
             return [result("Abrir nova tarefa no prafazer (%s)" % nome, "Digite o texto depois de 'td %s' para adicionar direto" % kw, ("pwa", ws, ""))]
-        return [result("prafazer %s: %s" % (nome, body), "Abre o app no navegador e adiciona a tarefa", ("pwa", ws, body))]
+        return [result("prafazer %s: %s" % (nome, body), ("Enter = adicionar direto no Dropbox" if dbx.load() else "Abre o app no navegador e adiciona a tarefa (td auth para evitar)"), ("pwa", ws, body))]
     if low.startswith("add ") or low == "add":
         body = text[3:].strip()
         if not body:
@@ -106,8 +110,30 @@ def add_task(text):
 
 
 def pwa(ws, body):
+    nome = "Pessoal" if ws == "pessoal" else "Trabalho"
+    motivo = ""
+    if body:
+        if dbx.load():
+            try:
+                dbx.append(ws, dbx.make_line(body))
+                return msg("Tarefa adicionada (%s)" % nome, body)
+            except Exception as e:  # sem rede, token inválido…: abre o app como antes
+                motivo = str(e)[:120]
+        else:
+            motivo = "sem config.json; rode: td auth"
     url = PWA_URL + "?ws=" + ws + ("&add=" + quote(body, safe="") if body else "&quick=1")
     os.startfile(url)
+    if motivo:
+        return msg("Aberto no navegador", motivo)
+
+
+def msg(titulo, sub=""):
+    return {"method": "Flow.Launcher.ShowMsg", "parameters": [titulo, sub, "icon.png"]}
+
+
+def auth():
+    py = sys.executable.replace("pythonw.exe", "python.exe")
+    subprocess.Popen(["cmd", "/c", "start", "", py, os.path.join(os.path.dirname(os.path.abspath(__file__)), "dbx.py"), "auth"])
 
 
 def open_cols():
@@ -119,7 +145,7 @@ def open_cols():
 
 METHODS = {
     "query": query, "context_menu": context_menu, "run": run,
-    "do_task": do_task, "del_task": del_task, "add_task": add_task, "open_cols": open_cols, "pwa": pwa,
+    "do_task": do_task, "del_task": del_task, "add_task": add_task, "open_cols": open_cols, "pwa": pwa, "auth": auth,
 }
 
 if __name__ == "__main__":
@@ -129,3 +155,5 @@ if __name__ == "__main__":
     res = METHODS[req["method"]](*req.get("parameters", []))
     if isinstance(res, list):
         sys.stdout.write(json.dumps({"result": res}, ensure_ascii=False))
+    elif isinstance(res, dict):
+        sys.stdout.write(json.dumps(res, ensure_ascii=False))

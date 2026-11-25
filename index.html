@@ -55,6 +55,20 @@ if(t&&t!=='padrao')document.documentElement.dataset.theme=t}catch(e){}</script>
   --proj:#f92672; --ctx:#fd971f; --meta:#a6e22e; --link:#66d9ef; --over:#f92672; --today:#fd971f;
   --accent:#a6e22e; --onaccent:#272822; --marksel:#5f5a28; --focusdim:#75715e; --toast:#3e3d32; --selout:#75715e; color-scheme:dark;
 }
+:root[data-theme="ubuntu"]{
+  --bg:#300a24; --panel:#3a0f2d; --head:#4a1a3c; --line:#5a2a4b; --fg:#eeeeec; --dim:#a68aa0;
+  --focus:#eeeeec; --focusfg:#300a24; --selbg:#5e2750; --cur:#3c1230; --markbg:#4a3a10; --markfg:#fce94f;
+  --priA:#34e2e2; --priB:#fce94f; --priC:#729fcf; --priX:#d3d7cf;
+  --proj:#ef2929; --ctx:#ad7fa8; --meta:#8ae234; --link:#34e2e2; --over:#ef2929; --today:#e95420;
+  --accent:#e95420; --onaccent:#ffffff; --marksel:#6a4a18; --focusdim:#6a3a5a; --toast:#4a1a3c; --selout:#8a5a7a; color-scheme:dark;
+}
+:root[data-theme="linux-mint"]{
+  --bg:#1e1e1e; --panel:#262626; --head:#303030; --line:#3a3a3a; --fg:#e6e6e6; --dim:#8a8a8a;
+  --focus:#e6e6e6; --focusfg:#1e1e1e; --selbg:#3a4430; --cur:#282828; --markbg:#3b3416; --markfg:#fce94f;
+  --priA:#34e2e2; --priB:#fce94f; --priC:#729fcf; --priX:#babdb6;
+  --proj:#ef2929; --ctx:#ad7fa8; --meta:#8ae234; --link:#34e2e2; --over:#ef2929; --today:#fcaf3e;
+  --accent:#87cf3e; --onaccent:#0f1a05; --marksel:#58501f; --focusdim:#555753; --toast:#303030; --selout:#6a6a6a; color-scheme:dark;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* barra de rolagem fina, nas cores do tema, sem setas nem trilho; mais visível ao passar o mouse */
 ::-webkit-scrollbar{width:8px;height:8px}
@@ -1093,6 +1107,8 @@ const THEMES=[
   {id:'solarized-dark',name:'Solarized Dark',bg:'#002b36'},
   {id:'midnight-blue',name:'Midnight Blue',bg:'#0b1220'},
   {id:'monokai',name:'Monokai',bg:'#272822'},
+  {id:'ubuntu',name:'Ubuntu',bg:'#300a24'},
+  {id:'linux-mint',name:'Linux Mint',bg:'#1e1e1e'},
 ];
 function applyTheme(id){
   const t=THEMES.find(x=>x.id===id)||THEMES[0];
