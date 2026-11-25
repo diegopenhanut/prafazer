@@ -59,6 +59,33 @@ const Notas=(()=>{
     for(const m of t.matchAll(TAGRE)){const v=cleanTag(m[3]).toLowerCase();if(!v)continue;const a=m[2]==='+'?p:c;if(!a.includes(v))a.push(v)}
     return{p,c};
   }
+  /* renomear etiqueta nos textos das notas (fora de blocos de código); devolve quantas notas mudaram */
+  function retag(texto,sign,from,to){
+    return (texto||'').split(/(```[\s\S]*?(?:```|$)|`[^`\n]*`)/).map((seg,i)=>i%2?seg:seg.replace(TAGRE,(m,pre,sg,name)=>{
+      if(sg!==sign)return m;
+      const v=cleanTag(name);if(v.toLowerCase()!==from)return m;
+      return pre+sg+to+name.slice(v.length);
+    })).join('');
+  }
+  async function renameTag(sign,from,to){
+    await flush();
+    let n=0;
+    for(const x of await allOf(WS)){
+      if(x.del||retag(x.texto,sign,from,to)===x.texto)continue;
+      await update(x.id,cur=>{
+        if(!cur||cur.del)return;
+        const t=retag(cur.texto,sign,from,to);if(t===cur.texto)return;
+        n++;return{...cur,texto:t,mod:Date.now(),sujo:true};
+      });
+    }
+    if(n){await refresh();syncSoon()}
+    return n;
+  }
+  async function tagCounts(){
+    const p=new Map(),c=new Map();
+    for(const x of await allOf(WS)){if(x.del)continue;const t=tagsOf(x.texto);t.p.forEach(v=>p.set(v,(p.get(v)||0)+1));t.c.forEach(v=>c.set(v,(c.get(v)||0)+1))}
+    return{p,c};
+  }
   async function uniqueName(ws,nome){
     let n=nome,i=2;
     while(await get(idOf(ws,n)))n=base(nome)+'-'+(i++)+'.md';
@@ -277,7 +304,7 @@ body.m #notas.edit #n-new{display:none}`;
     qEl.oninput=renderList;
     try{if(localStorage.getItem('prafazer-notas-side')==='0')root.classList.add('noside')}catch(e){}
     $n('#n-side-t').onclick=()=>{const off=root.classList.toggle('noside');try{localStorage.setItem('prafazer-notas-side',off?'0':'1')}catch(e){}};
-    sideEl.onclick=e=>{const it=e.target.closest('.si');if(it)setFlt(it.dataset.k,it.dataset.v)};
+    sideEl.onclick=e=>{const it=e.target.closest('.si');if(!it)return;if(it.dataset.k==='tags')showTags();else setFlt(it.dataset.k,it.dataset.v)};
     viewEl.onclick=e=>{const t=e.target.closest('.tg');if(t&&t.dataset.k){flush();root.classList.remove('edit');setFlt(t.dataset.k,t.dataset.v,true)}};
     ta.oninput=()=>{editing=true;clearTimeout(saveT);saveT=setTimeout(flush,250)};
     listEl.onclick=e=>{const it=e.target.closest('.ni');if(it)select(it.dataset.id)};
@@ -355,7 +382,8 @@ body.m #notas.edit #n-new{display:none}`;
     const row=(k,v,label,cnt,cls)=>`<div class="si ${cls||''}${(!flt&&k==='all')||(flt&&flt.k===k&&flt.v===v)?' cur':''}" data-k="${k}" data-v="${esc(v)}"><span class="v">${esc(label)}</span><span class="n">${cnt}</span></div>`;
     const list=(M,k,sg)=>[...M].sort((a,b)=>a[0].localeCompare(b[0])).map(([v,c])=>row(k,v,sg+v,c,k)).join('');
     sideEl.innerHTML=row('all','','Todas',notes.length)+row('none','','Sem etiqueta',none)
-      +(P.size?'<h4>Projetos</h4>'+list(P,'p','+'):'')+(C.size?'<h4>Contextos</h4>'+list(C,'c','@'):'');
+      +(P.size?'<h4>Projetos</h4>'+list(P,'p','+'):'')+(C.size?'<h4>Contextos</h4>'+list(C,'c','@'):'')
+      +'<div class="si" data-k="tags"><span class="v">✎ Renomear etiquetas</span></div>';
   }
   function setFlt(k,v,keepSame){
     flt=(k==='all'||(!keepSame&&flt&&flt.k===k&&flt.v===v))?null:{k,v};
@@ -486,5 +514,5 @@ body.m #notas.edit #n-new{display:none}`;
     addEventListener('online',()=>sync());
   }
   setTimeout(init,0);
-  return{open,close,sync,forTask,create,md,_titleOf:titleOf,_slug:slug,isOpen:()=>isOpen};
+  return{open,close,sync,forTask,create,renameTag,tagCounts,md,_titleOf:titleOf,_slug:slug,isOpen:()=>isOpen};
 })();
