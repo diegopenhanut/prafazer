@@ -1157,7 +1157,7 @@ colsEl.addEventListener('scroll',()=>{
   scT=setTimeout(()=>{const c=Math.round(colsEl.scrollLeft/colsEl.clientWidth);if(c!==focusCol&&c>=0&&c<columns.length){focusCol=c;marked.clear();render()}},90);
 },{passive:true});
 
-$('#fab').onclick=addSheet;
+$('#fab').onclick=()=>addSheet();
 $('#wsw').addEventListener('click',e=>{const b=e.target.closest('button');if(b)switchWorkspace(b.dataset.ws)});
 $('#sync').onclick=showSync;$('#b-theme').onclick=showSettings;$('#b-newcol').onclick=()=>openColSheet(null);$('#b-help').onclick=showHelp;$('#b-io').onclick=showIO;$('#b-notes').onclick=()=>Notas.open();$('#b-menu').onclick=showMenu;
 $('#toastundo').onclick=()=>{$('#toast').classList.remove('on');undo()};

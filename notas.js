@@ -215,11 +215,11 @@ const Notas=(()=>{
     css.textContent=`
 #notas{position:fixed;inset:0;z-index:15;background:var(--bg);color:var(--fg);display:none;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 #notas.on{display:flex}
-#notas .nh{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex:0 0 auto}
-#notas .nh b{font-weight:700} #notas .sp{flex:1}
-#notas .nbtn{padding:4px 10px;border:1px solid var(--line);border-radius:4px;color:var(--fg)} #notas .nbtn:hover{border-color:var(--dim)}
+#notas .nh{display:flex;align-items:center;gap:10px;padding:4px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex:0 0 auto}
+#notas .nh b{font-weight:700;letter-spacing:.02em;flex:0 0 auto} #notas .nh b i{font-style:normal;color:var(--accent)} #notas .nh .nt{color:var(--dim);white-space:nowrap} #notas .sp{flex:1}
+#notas .nbtn{color:var(--dim);font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:3px} #notas .nbtn:hover{color:var(--fg);border-color:var(--dim)}
 #notas .nbtn.on{background:var(--accent);color:var(--onaccent);border-color:var(--accent);font-weight:700}
-#notas #n-st{color:var(--dim);font-size:12px;white-space:nowrap}
+#notas #n-st{white-space:nowrap;max-width:55vw;overflow:hidden;text-overflow:ellipsis}
 #notas .nb{flex:1;display:flex;min-height:0}
 #notas .ns{flex:0 0 170px;overflow-y:auto;border-right:1px solid var(--line);padding:6px 0;font-size:13px}
 #notas .ns h4{margin:10px 12px 4px;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
@@ -258,11 +258,13 @@ body.m #notas .si{flex:0 0 auto;padding:6px 10px;margin-right:6px;border:1px sol
 body.m #notas.edit .ns{display:none}
 body.m #notas .nl{flex:1;border-right:0} body.m #notas .ne{display:none}
 body.m #notas.edit .nl{display:none} body.m #notas.edit .ne{display:flex}
-body.m #notas .mob{display:inline-block} body.m #notas .nbtn{padding:8px 12px} body.m #notas .nh .l{display:none} body.m #notas .nh{gap:6px}
-body.m #notas textarea{font-size:16px}`;
+body.m #notas .mob{display:inline-block} body.m #notas .nbtn{padding:6px 12px;font-size:13px} body.m #notas .nh .l{display:none} body.m #notas .nh{gap:6px;padding:10px 12px} body.m #notas .nh b{font-size:16px}
+body.m #notas textarea{font-size:16px}
+body.m #notas #n-new{position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));width:58px;height:58px;padding:0;border:0;border-radius:50%;background:var(--accent);color:var(--onaccent);font-size:30px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:1}
+body.m #notas.edit #n-new{display:none}`;
     document.head.appendChild(css);
     root=document.createElement('div');root.id='notas';
-    root.innerHTML=`<div class="nh"><button class="nbtn" id="n-back" aria-label="Voltar">←<span class="l"> Voltar</span></button><button class="nbtn" id="n-side-t" aria-label="Etiquetas" title="Mostrar/ocultar etiquetas">☰</button><b>Notas<span class="l"> · <span id="n-ctx"></span></span></b><span class="sp"></span><span id="n-st"></span><button class="nbtn" id="n-new" aria-label="Nova nota">+<span class="l"> Nova</span></button><button class="nbtn" id="n-more" aria-label="Mais">⋯</button></div>
+    root.innerHTML=`<div class="nh"><button class="nbtn" id="n-back" aria-label="Voltar">←<span class="l"> Voltar</span></button><button class="nbtn" id="n-side-t" aria-label="Etiquetas" title="Mostrar/ocultar etiquetas">☰</button><b>Pra<i>Fazer</i></b><span class="nt">Notas<span class="l"> · <span id="n-ctx"></span></span></span><button id="n-st" class="tbtn"></button><span class="sp"></span><button class="nbtn" id="n-new" aria-label="Nova nota">+<span class="l"> Nova</span></button><button class="nbtn" id="n-more" aria-label="Mais">⋯</button></div>
 <div class="nb"><aside class="ns" id="n-side"></aside><aside class="nl"><input id="n-q" type="search" placeholder="buscar nas notas…" autocomplete="off"><div id="n-list"></div></aside>
 <section class="ne"><div class="nbar"><button class="nbtn mob" id="n-tolist">‹ Lista</button><button class="nbtn" data-mode="view">Ver</button><button class="nbtn" data-mode="edit">Editar</button><span class="sp"></span><button class="nbtn" id="n-del">Excluir</button></div>
 <div id="n-links"></div><textarea id="n-ta" spellcheck="false" placeholder="Escreva em markdown…"></textarea><div id="n-view" style="display:none"></div></section></div>`;
@@ -270,7 +272,7 @@ body.m #notas textarea{font-size:16px}`;
     sideEl=$n('#n-side');listEl=$n('#n-list');ta=$n('#n-ta');viewEl=$n('#n-view');qEl=$n('#n-q');stEl=$n('#n-st');linksEl=$n('#n-links');
     $n('#n-back').onclick=close;$n('#n-new').onclick=()=>create();$n('#n-del').onclick=remove;
     $n('#n-tolist').onclick=()=>{flush();root.classList.remove('edit')};
-    $n('#n-more').onclick=moreMenu;
+    $n('#n-more').onclick=moreMenu;stEl.onclick=()=>showSync();
     root.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
     qEl.oninput=renderList;
     try{if(localStorage.getItem('prafazer-notas-side')==='0')root.classList.add('noside')}catch(e){}
@@ -288,8 +290,9 @@ body.m #notas textarea{font-size:16px}`;
 
   function ui(){
     if(!stEl)return;
-    const [sym,lab]=!dbx.connected()?['○',' só neste aparelho']:sstate==='sync'?['⟳',' sincronizando…']:sstate==='err'?['⚠',' erro']:!navigator.onLine?['○',' offline']:['●',' sincronizado'];
-    stEl.innerHTML=`${sym}<span class="l">${lab}</span>`;
+    const hm=dbx.cfg.last?new Date(dbx.cfg.last).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    const [sym,lab]=!dbx.connected()?['○',' só neste aparelho']:sstate==='sync'?['⟳',' sincronizando…']:sstate==='err'?['⚠',' erro de sincronização']:!navigator.onLine?['○',' offline · alterações guardadas']:['●',' Dropbox '+hm];
+    stEl.innerHTML=`<span class="s">${sym}</span><span class="l">${lab}</span>`;
     stEl.title=smsg||lab.trim();
   }
   async function refresh(){
