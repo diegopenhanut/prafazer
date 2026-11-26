@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "PraFazer · salvar para ler depois",
+  "version": "1.0.0",
+  "description": "Salva a página (título + link) como tarefa no PraFazer, com +inbox, direto no Dropbox.",
+  "icons": { "48": "icon.png", "128": "icon.png" },
+  "action": { "default_title": "Salvar no PraFazer (+inbox)", "default_icon": "icon.png" },
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["dropbox.js", "background.js"]
+  },
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "permissions": ["activeTab", "storage", "contextMenus", "notifications", "alarms"],
+  "host_permissions": ["https://api.dropboxapi.com/*", "https://content.dropboxapi.com/*"],
+  "commands": {
+    "salvar": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "Salvar a página no PraFazer"
+    }
+  },
+  "browser_specific_settings": { "gecko": { "id": "prafazer-ler-depois@diegopenhanut.github.io" } }
+}

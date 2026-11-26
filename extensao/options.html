@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>PraFazer · opções</title>
+<style>
+body{font:14px system-ui,sans-serif;max-width:640px;margin:24px auto;padding:0 16px;color:#222}
+h1{font-size:18px} h2{font-size:15px;margin-top:24px} label{display:block;margin:10px 0 3px;color:#555}
+input,select{width:100%;padding:7px;border:1px solid #bbb;border-radius:4px;font:inherit;box-sizing:border-box}
+button{margin-top:8px;padding:7px 14px;font:inherit;cursor:pointer} .ok{color:#2e8b57} .err{color:#c0392b}
+.help{color:#666;font-size:13px} a{word-break:break-all}
+</style></head><body>
+<h1>PraFazer · salvar para ler depois</h1>
+<p class="help">Clique no ícone (ou Alt+Shift+S, ou o menu do botão direito) para salvar a página como tarefa. A linha vai direto para o todo.txt no Dropbox; o PraFazer a incorpora na próxima sincronização.</p>
+
+<h2>1. Dropbox <span id="st"></span></h2>
+<p class="help">Use a mesma App key do PraFazer (em Sincronizar → configuração). Em seguida gere o link, autorize no Dropbox e cole aqui o código exibido.</p>
+<label for="key">App key</label><input id="key" autocomplete="off" spellcheck="false">
+<button id="gen">Gerar link de autorização</button>
+<p id="lnk" class="help"></p>
+<label for="code">Código</label><input id="code" autocomplete="off" spellcheck="false">
+<button id="fin">Concluir autorização</button>
+
+<h2>2. Tarefa</h2>
+<label for="ws">Contexto</label><select id="ws"><option value="pessoal">Pessoal (todo.txt)</option><option value="trabalho">Trabalho (trabalho.txt)</option></select>
+<label for="tag">Projeto (ex.: +inbox ou +internet)</label><input id="tag">
+<label for="ctx">Contexto da tarefa (ex.: @ler; vazio = nenhum)</label><input id="ctx">
+<label for="prefix">Prefixo do título (opcional, ex.: Ler:)</label><input id="prefix">
+<button id="sv">Salvar opções</button> <span id="msg"></span>
+<script src="dropbox.js"></script>
+<script src="options.js"></script>
+</body></html>
