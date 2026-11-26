@@ -219,7 +219,7 @@ body.m #b-menu{flex:0 0 auto;margin-left:auto;padding:6px 14px;font-size:18px}
 #sheet textarea{min-height:240px;resize:vertical}
 .themes{display:flex;gap:8px;align-items:center}
 .themes .sws{display:flex;gap:3px;flex:0 0 auto} .themes .sws i{width:12px;height:12px;border-radius:50%;border:1px solid var(--dim)}
-#sheet .themes select{flex:1;min-width:0;width:auto} .themes .btn{flex:0 0 auto} .themes .btn:disabled{opacity:.35;cursor:default}
+#sheet .themes select{flex:1;min-width:0;width:auto} .themes .btn{flex:0 0 auto}
 .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .btn{padding:8px 12px;border:1px solid var(--line);border-radius:4px;background:var(--head)}
 .btn:hover{border-color:var(--dim)}
@@ -1214,10 +1214,10 @@ async function diagInfo(){
   try{if(navigator.storage&&navigator.storage.persisted)ok(await navigator.storage.persisted(),'Armazenamento protegido contra limpeza automática')}catch(e){}
   return `<table class="keys">${out.join('')}</table>`;
 }
-function themePicker(cur){   // dropdown de família + [Claro] [Escuro] (só os modos que a família tem)
+function themePicker(cur){   // dropdown de família + [Claro] [Escuro], estes só se a família tiver as duas versões
   const t=THEMES.find(x=>x.id===cur)||THEMES[0],fams=[...new Set(THEMES.map(x=>x.fam))];
-  const btn=(m,label)=>{const v=THEMES.find(x=>x.fam===t.fam&&x.mode===m);return `<button class="btn sm${v&&v.id===t.id?' pri1':''}"${v?` data-th="${v.id}" title="${esc(v.name)}"`:' disabled'}>${label}</button>`};
-  return `<div class="themes"><span class="sws">${t.sw.map(c=>`<i style="background:${c}"></i>`).join('')}</span><select id="th-fam" aria-label="Tema">${fams.map(f=>`<option${f===t.fam?' selected':''}>${esc(f)}</option>`).join('')}</select>${btn('light','Claro')}${btn('dark','Escuro')}</div>`;
+  const vars=THEMES.filter(x=>x.fam===t.fam),btns=vars.length<2?'':vars.map(v=>`<button class="btn sm${v.id===t.id?' pri1':''}" data-th="${v.id}" title="${esc(v.name)}">${v.mode==='light'?'Claro':'Escuro'}</button>`).join('');
+  return `<div class="themes"><span class="sws">${t.sw.map(c=>`<i style="background:${c}"></i>`).join('')}</span><select id="th-fam" aria-label="Tema">${fams.map(f=>`<option${f===t.fam?' selected':''}>${esc(f)}</option>`).join('')}</select>${btns}</div>`;
 }
 const themeOf=(fam,mode)=>THEMES.find(x=>x.fam===fam&&x.mode===mode)||THEMES.find(x=>x.fam===fam);   // mantém o modo ao trocar de família
 function showSettings(){
