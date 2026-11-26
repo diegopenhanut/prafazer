@@ -118,7 +118,7 @@ body.m #b-menu{flex:0 0 auto;margin-left:auto;padding:6px 14px;font-size:18px}
 .col-h .ed:hover{opacity:1;background:rgba(127,127,127,.3)}
 .col.focus .col-h{background:var(--focus);color:var(--focusfg)}
 .col.focus .col-h .n,.col.focus .col-h .f{color:var(--focusdim)}
-.col-b{flex:1;overflow-y:auto;padding:2px 0 24px;overscroll-behavior:contain}
+.col-b{flex:1;overflow-y:auto;padding:2px 0 24px;overscroll-behavior:contain;overflow-anchor:none}
 .empty{color:var(--dim);padding:6px 10px}
 
 .grp{padding:2px 8px;margin-top:6px;color:var(--meta);font-weight:bold;border-bottom:1px solid var(--line)} .grp span{color:var(--dim);font-weight:normal}
@@ -699,7 +699,8 @@ function render(){
     el.querySelector('.t').textContent=col.title;
     el.querySelector('.n').textContent=`(${views[c].length})`;
     el.querySelector('.f').textContent=(mobile?(col.filter?`filtro: ${col.filter}`:'sem filtro')+(col.sort?` · ordem: ${col.sort}`:''):col.filter)+(col.group?` · por ${GROUPS[col.group]}`:'');
-    el.querySelector('.col-b').innerHTML=views[c].length?views[c].map((it,i)=>rowHTML(it,c,i)).join(''):'<div class="empty">— vazio —</div>';
+    const body=el.querySelector('.col-b'),html=views[c].length?views[c].map((it,i)=>rowHTML(it,c,i)).join(''):'<div class="empty">— vazio —</div>';
+    if(body._html!==html){const y=body.scrollTop;body.innerHTML=body._html=html;body.scrollTop=y}   // coluna sem mudança não é redesenhada (não perde a rolagem)
   });
   tabsEl.innerHTML=columns.map((col,c)=>`<button class="tab${c===focusCol?' on':''}" data-c="${c}">${esc(col.title)}<b>${views[c].length}</b></button>`).join('')+`<button class="tab add" data-c="new">+ coluna</button>`;
   document.body.classList.toggle('selecting',mobile&&marked.size>0);
