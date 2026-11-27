@@ -1,7 +1,7 @@
 /* Service worker: o app inteiro fica no cache e abre sem rede.
    Troque VERSION a cada publicação para os aparelhos pegarem a versão nova. */
-const VERSION='prafazer-v31';
-const SHELL=['./','index.html','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','notas.js','calendario.js'];
+const VERSION='prafazer-v32';
+const SHELL=['./','index.html','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','editor.js','notas.js','calendario.js'];
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));

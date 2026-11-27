@@ -1,7 +1,7 @@
 /* Notas em markdown: um arquivo .md por nota.
    Local: IndexedDB (funciona offline). Dropbox: uma pasta por contexto (/notas e /trabalho-notas),
    sincronização incremental por list_folder + cursor. Conflito = mantém as duas versões.
-   Usa do app principal: WS, dbx, esc, today, setTag, build, parse, snapshot, commit, isSheet. */
+   Usa do app principal: WS, dbx, esc, today, setTag, build, parse, snapshot, commit, isSheet; e Editor (editor.js). */
 const Notas=(()=>{
   const CONTENT='https://content.dropboxapi.com/2/files/',RPC='https://api.dropboxapi.com/2/files/';
 
@@ -105,9 +105,10 @@ const Notas=(()=>{
   }
   function md(src){
     const L=(src||'').replace(/\r\n?/g,'\n').split('\n'),out=[];
-    let i=0,para=[],list=null;
+    let i=0,para=[];const lists=[];   // listas abertas, da mais externa à mais interna
     const flushP=()=>{if(para.length){out.push('<p>'+para.map(mdInline).join('<br>')+'</p>');para=[]}};
-    const flushL=()=>{if(list){out.push(`<${list.t}>`+list.items.join('')+`</${list.t}>`);list=null}};
+    const closeL=()=>out.push(`</li></${lists.pop().t}>`);
+    const flushL=()=>{while(lists.length)closeL()};
     while(i<L.length){
       const l=L[i];let m;
       if(/^```/.test(l)){flushP();flushL();const code=[];i++;while(i<L.length&&!/^```/.test(L[i]))code.push(L[i++]);i++;out.push('<pre><code>'+esc(code.join('\n'))+'</code></pre>');continue}
@@ -115,13 +116,15 @@ const Notas=(()=>{
       if((m=l.match(/^(#{1,6})\s+(.*)$/))){flushP();flushL();out.push(`<h${m[1].length}>${mdInline(m[2])}</h${m[1].length}>`);i++;continue}
       if(/^\s*([-*_])(\s*\1){2,}\s*$/.test(l)){flushP();flushL();out.push('<hr>');i++;continue}
       if(/^>/.test(l)){flushP();flushL();const q=[];while(i<L.length&&/^>/.test(L[i]))q.push(L[i++].replace(/^>\s?/,''));out.push('<blockquote>'+q.map(mdInline).join('<br>')+'</blockquote>');continue}
-      if((m=l.match(/^\s*([-*+]|\d+[.)])\s+(.*)$/))){
-        flushP();const t=/\d/.test(m[1])?'ol':'ul';
-        if(list&&list.t!==t)flushL();
-        if(!list)list={t,items:[]};
-        let item=m[2],box='';const c=item.match(/^\[([ xX])\]\s+(.*)$/);
-        if(c){box=`<input type="checkbox" disabled${c[1]===' '?'':' checked'}> `;item=c[2]}
-        list.items.push('<li>'+box+mdInline(item)+'</li>');i++;continue;
+      if((m=l.match(/^(\s*)([-*+]|\d+[.)])\s+(.*)$/))){
+        flushP();const t=/\d/.test(m[2])?'ol':'ul',ind=m[1].replace(/\t/g,'    ').length,top=()=>lists[lists.length-1];
+        while(lists.length&&ind<top().ind)closeL();
+        if(lists.length&&ind===top().ind&&top().t!==t)closeL();
+        if(lists.length&&ind===top().ind)out.push('</li>');
+        else{out.push(`<${t}>`);lists.push({t,ind})}
+        let item=m[3],box='';const c=item.match(/^\[([ xX])\]\s+(.*)$/);
+        if(c){box=`<input type="checkbox" data-ln="${i}"${c[1]===' '?'':' checked'}> `;item=c[2]}
+        out.push('<li>'+box+mdInline(item));i++;continue;
       }
       flushL();para.push(l);i++;
     }
@@ -235,6 +238,23 @@ const Notas=(()=>{
   /* ---------- interface ---------- */
   let root,sideEl,listEl,ta,viewEl,qEl,stEl,linksEl,curId=null,mode='view',nextEdit=false,notes=[],tagMap=new Map(),flt=null,saveT=null,isOpen=false,booted=false,editing=false;   // editing: há texto digitado ainda não salvo
   const $n=s=>root.querySelector(s);
+  /* cursor e rolagem de cada nota (só em memória). savePos() antes de esconder ou trocar */
+  const pos=new Map();
+  function savePos(){
+    if(!curId)return;
+    const el=mode==='edit'?ta:viewEl;
+    if(!el.getClientRects().length)return;           // escondido: a posição guardada continua valendo
+    const p=pos.get(curId)||{};
+    if(mode==='edit'){p.s=ta.selectionStart;p.e=ta.selectionEnd;p.top=ta.scrollTop}else p.viewTop=viewEl.scrollTop;
+    pos.set(curId,p);
+  }
+  function restorePos(){
+    const p=pos.get(curId)||{};
+    if(mode==='view'){viewEl.scrollTop=p.viewTop||0;return}
+    if(p.s===undefined)return;
+    if(!isCoarse())ta.setSelectionRange(p.s,p.e);    // no celular, mexer na seleção pode abrir o teclado
+    ta.scrollTop=p.top;
+  }
 
   function boot(){
     if(booted)return;booted=true;
@@ -268,15 +288,16 @@ const Notas=(()=>{
 #notas .ne{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 #notas .nbar{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line)}
 #notas #n-links{padding:4px 12px;color:var(--dim);font-size:12px}
-#notas textarea{flex:1;width:100%;resize:none;border:0;outline:none;background:var(--bg);color:var(--fg);font:inherit;line-height:1.5;padding:12px 14px}
+#notas textarea{flex:1;width:100%;resize:none;border:0;outline:none;background:var(--bg);color:var(--fg);font:inherit;line-height:1.5;padding:12px 14px;tab-size:4}
 #notas #n-view{flex:1;overflow-y:auto;padding:8px 18px 40px;line-height:1.55}
 #notas #n-view h1,#notas #n-view h2,#notas #n-view h3{color:var(--accent);margin:.9em 0 .3em}
 #notas #n-view h1{font-size:1.5em} #notas #n-view h2{font-size:1.25em} #notas #n-view h3{font-size:1.1em}
 #notas #n-view code{background:var(--head);padding:1px 4px;border-radius:3px}
-#notas #n-view pre{background:var(--head);padding:10px;border-radius:4px;overflow-x:auto} #notas #n-view pre code{background:none;padding:0}
+#notas #n-view pre{background:var(--head);padding:10px;border-radius:4px;overflow-x:auto;tab-size:4} #notas #n-view pre code{background:none;padding:0}
 #notas #n-view blockquote{margin:.6em 0;padding:2px 12px;border-left:3px solid var(--line);color:var(--dim)}
 #notas #n-view a{color:var(--link)} #notas #n-view hr{border:0;border-top:1px solid var(--line)}
 #notas #n-view ul,#notas #n-view ol{padding-left:1.4em}
+#notas #n-view input[type=checkbox]{cursor:pointer}
 #notas .mob{display:none}
 body.m #notas .nb{flex-direction:column} body.m #notas #n-side-t{display:none}
 body.m #notas .ns{flex:0 0 auto;display:flex;flex-direction:row;align-items:center;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--line);padding:4px 6px;white-space:nowrap}
@@ -294,25 +315,36 @@ body.m #notas.edit #n-new{display:none}`;
     root.innerHTML=`<div class="nh"><button class="nbtn" id="n-back" aria-label="Voltar">←<span class="l"> Voltar</span></button><button class="nbtn" id="n-side-t" aria-label="Etiquetas" title="Mostrar/ocultar etiquetas">☰</button><b>Pra<i>Fazer</i></b><span class="nt">Notas<span class="l"> · <span id="n-ctx"></span></span></span><button id="n-st" class="tbtn"></button><span class="sp"></span><button class="nbtn" id="n-new" aria-label="Nova nota">+<span class="l"> Nova</span></button><button class="nbtn" id="n-more" aria-label="Mais">⋯</button></div>
 <div class="nb"><aside class="ns" id="n-side"></aside><aside class="nl"><input id="n-q" type="search" placeholder="buscar nas notas…" autocomplete="off"><div id="n-list"></div></aside>
 <section class="ne"><div class="nbar"><button class="nbtn mob" id="n-tolist">‹ Lista</button><button class="nbtn" data-mode="view">Ver</button><button class="nbtn" data-mode="edit">Editar</button><span class="sp"></span><button class="nbtn" id="n-del">Excluir</button></div>
-<div id="n-links"></div><textarea id="n-ta" spellcheck="false" placeholder="Escreva em markdown…"></textarea><div id="n-view" style="display:none"></div></section></div>`;
+<div id="n-links"></div><textarea id="n-ta" spellcheck="true" lang="pt-BR" placeholder="Escreva em markdown…"></textarea><div id="n-view" style="display:none"></div></section></div>`;
     document.body.appendChild(root);
     sideEl=$n('#n-side');listEl=$n('#n-list');ta=$n('#n-ta');viewEl=$n('#n-view');qEl=$n('#n-q');stEl=$n('#n-st');linksEl=$n('#n-links');
     $n('#n-back').onclick=close;$n('#n-new').onclick=()=>create();$n('#n-del').onclick=remove;
-    $n('#n-tolist').onclick=()=>{flush();root.classList.remove('edit')};
+    $n('#n-tolist').onclick=()=>{flush();savePos();root.classList.remove('edit')};
     $n('#n-more').onclick=moreMenu;stEl.onclick=()=>showSync();
-    root.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+    root.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{savePos();setMode(b.dataset.mode)});
     qEl.oninput=renderList;
     try{if(localStorage.getItem('prafazer-notas-side')==='0')root.classList.add('noside')}catch(e){}
     $n('#n-side-t').onclick=()=>{const off=root.classList.toggle('noside');try{localStorage.setItem('prafazer-notas-side',off?'0':'1')}catch(e){}};
     sideEl.onclick=e=>{const it=e.target.closest('.si');if(!it)return;if(it.dataset.k==='tags')showTags();else setFlt(it.dataset.k,it.dataset.v)};
-    viewEl.onclick=e=>{const t=e.target.closest('.tg');if(t&&t.dataset.k){flush();root.classList.remove('edit');setFlt(t.dataset.k,t.dataset.v,true)}};
+    viewEl.onclick=e=>{
+      if(e.target.dataset.ln!==undefined){tick(+e.target.dataset.ln);return}
+      const t=e.target.closest('.tg');if(t&&t.dataset.k){flush();savePos();root.classList.remove('edit');setFlt(t.dataset.k,t.dataset.v,true)}
+    };
+    Editor.attach(ta);
     ta.oninput=()=>{editing=true;clearTimeout(saveT);saveT=setTimeout(flush,250)};
     listEl.onclick=e=>{const it=e.target.closest('.ni');if(it)select(it.dataset.id)};
     document.addEventListener('keydown',e=>{
+      if(isOpen&&(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='s'){e.preventDefault();flush().then(sync);return}
       if(!isOpen||isSheet()||e.defaultPrevented||e.ctrlKey||e.metaKey||e.altKey)return;
-      if(e.key==='Escape'){e.preventDefault();if(mobileEdit())root.classList.remove('edit');else close();return}
+      if(e.key==='Escape'){
+        e.preventDefault();
+        if(mobileEdit()){savePos();root.classList.remove('edit')}
+        else if(curId&&mode==='edit'&&!document.body.classList.contains('m')){flush();savePos();setMode('view');ta.blur()}   // 1º Esc: sai da edição
+        else close();
+        return;
+      }
       if(e.target.matches&&e.target.matches('input,textarea'))return;
-      const k=e.key,f={s:close,a:()=>create(),d:remove,'?':help}[k];
+      const k=e.key,f={s:close,a:()=>create(),d:remove,e:startEdit,'?':help}[k];
       if(f){e.preventDefault();f()}
     });
     addEventListener('beforeunload',()=>{flush()});
@@ -321,7 +353,8 @@ body.m #notas.edit #n-new{display:none}`;
   }
   function help(){
     const K=(k,d)=>`<tr><td>${k}</td><td>${d}</td></tr>`;
-    openSheet(`<h3>Atalhos das notas</h3><table class="keys">${K('s','voltar às tarefas')}${K('a','nova nota')}${K('d','excluir a nota aberta (pede confirmação)')}${K('?','esta ajuda')}${K('Esc','voltar / fechar as notas')}</table><div class="btns"><button class="btn" data-close>Fechar</button></div>`);
+    openSheet(`<h3>Atalhos das notas</h3><table class="keys">${K('s','voltar às tarefas')}${K('a','nova nota')}${K('e','editar a nota aberta')}${K('d','excluir a nota aberta (pede confirmação)')}${K('?','esta ajuda')}${K('Ctrl+S','salvar e sincronizar')}${K('Esc','sair da edição; de novo, fechar as notas')}</table>
+<h3>Editando</h3><table class="keys">${K('Tab · Shift+Tab','recuar / remover recuo')}${K('Enter','continua a lista (num item vazio, encerra)')}${K('Ctrl+B · Ctrl+I','negrito / itálico')}${K('Ctrl+K','link')}${K('* _ ` [ (','com texto selecionado, envolve a seleção')}${K('colar uma URL','sobre um texto selecionado, cria um link')}${K('Alt+↑ · Alt+↓','mover a linha')}${K('Shift+Alt+↑ · ↓','duplicar a linha')}</table><div class="btns"><button class="btn" data-close>Fechar</button></div>`);
   }
   const mobileEdit=()=>document.body.classList.contains('m')&&root.classList.contains('edit');
 
@@ -337,7 +370,16 @@ body.m #notas.edit #n-new{display:none}`;
     indexTags();
     if(isOpen){
       const c=curId&&notes.find(n=>n.id===curId);
-      if(c&&!editing&&ta.value!==(c.texto||'')){ta.value=c.texto||'';if(mode==='view')viewEl.innerHTML=md(ta.value);showLinks(c)}
+      const neu=c?(c.texto||'').replace(/\r\n?/g,'\n'):'';   // o textarea só usa \n
+      if(c&&!editing&&ta.value!==neu){               // chegou texto novo: mantém cursor e rolagem
+        const old=ta.value,map=x=>Editor.mapPos(old,neu,x),p=pos.get(curId),focused=document.activeElement===ta;
+        const s=map(ta.selectionStart),e=map(ta.selectionEnd),top=ta.scrollTop,vtop=viewEl.scrollTop;
+        if(p&&p.s!==undefined){p.s=map(p.s);p.e=map(p.e)}
+        ta.value=neu;ta.scrollTop=top;
+        if(focused)ta.setSelectionRange(s,e);
+        if(mode==='view'){viewEl.innerHTML=md(neu);viewEl.scrollTop=vtop}
+        showLinks(c);
+      }
       renderSide();renderList();
     }
   }
@@ -396,6 +438,19 @@ body.m #notas.edit #n-new{display:none}`;
     ta.style.display=m==='edit'?'':'none';viewEl.style.display=m==='view'?'':'none';
     if(m==='view')viewEl.innerHTML=md(ta.value);
     if(m==='edit'&&n&&!isCoarse())ta.focus();
+    restorePos();
+  }
+  function startEdit(){
+    if(!curId)return;
+    root.classList.add('edit');
+    if(mode!=='edit'){savePos();setMode('edit')}
+    ta.focus();
+  }
+  async function tick(ln){                           // caixa marcada na visualização
+    const top=viewEl.scrollTop;
+    ta.value=Editor.toggleBox(ta.value,ln);editing=true;
+    viewEl.innerHTML=md(ta.value);viewEl.scrollTop=top;
+    await flush();
   }
   const isCoarse=()=>matchMedia('(pointer:coarse)').matches;
   function showLinks(n){
@@ -410,6 +465,7 @@ body.m #notas.edit #n-new{display:none}`;
   async function select(id,focus){
     await flush();
     const n=await get(id);if(!n)return;
+    savePos();
     curId=id;editing=false;ta.value=n.texto||'';ta.disabled=false;
     root.classList.add('edit');showLinks(n);renderList();
     const ed=nextEdit||!(n.texto||'').replace(/^#*\s*/,'').trim();nextEdit=false;   // abre em “Ver”; nota nova ou vazia abre em “Editar”
@@ -440,6 +496,7 @@ body.m #notas.edit #n-new{display:none}`;
       out=cur;return cur;
     });
     if(!out)return;
+    if(out.id!==n0.id&&pos.has(n0.id)){pos.set(out.id,pos.get(n0.id));pos.delete(n0.id)}
     if(out.id!==n0.id&&curId===n0.id)curId=out.id;
     await refresh();showLinks(out);syncSoon();
   }
@@ -458,7 +515,7 @@ body.m #notas.edit #n-new{display:none}`;
     if(!confirm('Excluir a nota “'+titleOf(n)+'”?'))return;
     clearTimeout(saveT);saveT=null;
     if(n.rev)await put({...n,del:true,sujo:false});else await del(n.id);
-    curId=null;ta.value='';ta.disabled=true;linksEl.innerHTML='';root.classList.remove('edit');
+    pos.delete(curId);curId=null;ta.value='';ta.disabled=true;linksEl.innerHTML='';root.classList.remove('edit');
     await refresh();syncSoon();
   }
   function moreMenu(){
@@ -482,6 +539,7 @@ body.m #notas.edit #n-new{display:none}`;
   }
   async function close(){
     await flush();
+    savePos();
     isOpen=false;root.classList.remove('on');document.body.classList.remove('notas-on');
     curId=null;
     try{colsEl.focus({preventScroll:true})}catch(e){}

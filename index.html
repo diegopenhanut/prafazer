@@ -1360,6 +1360,7 @@ if(qAdd)addTask(qAdd);
 else if(qQuick||qShare)setTimeout(()=>{mobile?addSheet(qShare||undefined):promptText('add>',qShare||prefill(),addTask,'Nova tarefa')},150);
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
+<script src="editor.js"></script>
 <script src="notas.js"></script>
 <script src="calendario.js"></script>
 </body>
