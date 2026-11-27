@@ -386,7 +386,7 @@ body.m #notas.edit #n-new{display:none}`;
   function help(){
     const K=(k,d)=>`<tr><td>${k}</td><td>${d}</td></tr>`;
     openSheet(`<h3>Atalhos das notas</h3><table class="keys">${K('s','voltar às tarefas')}${K('a','nova nota')}${K('e','editar a nota aberta')}${K('d','excluir a nota aberta (pede confirmação)')}${K('?','esta ajuda')}${K('Ctrl+S','salvar e sincronizar')}${K('Esc','sair da edição; de novo, fechar as notas')}</table>
-<h3>Editando</h3><table class="keys">${K('Tab · Shift+Tab','recuar / remover recuo')}${K('Enter','continua a lista (num item vazio, encerra)')}${K('Ctrl+B · Ctrl+I','negrito / itálico')}${K('Ctrl+K','link')}${K('* _ ` [ (','com texto selecionado, envolve a seleção')}${K('colar uma URL','sobre um texto selecionado, cria um link')}${K('Alt+↑ · Alt+↓','mover a linha')}${K('Shift+Alt+↑ · ↓','duplicar a linha')}</table><div class="btns"><button class="btn" data-close>Fechar</button></div>`);
+<h3>Editando</h3><table class="keys">${K('Tab · Shift+Tab','recuar / remover recuo (em listas, muda o nível do item)')}${K('Enter','continua a lista (num item vazio, sobe um nível ou encerra)')}${K('Ctrl+B · Ctrl+I','negrito / itálico')}${K('Ctrl+K','link')}${K('* _ ` [ (','com texto selecionado, envolve a seleção')}${K('colar uma URL','sobre um texto selecionado, cria um link')}${K('Alt+↑ · Alt+↓','mover a linha')}${K('Shift+Alt+↑ · ↓','duplicar a linha')}</table><div class="btns"><button class="btn" data-close>Fechar</button></div>`);
   }
   const mobileEdit=()=>document.body.classList.contains('m')&&root.classList.contains('edit');
 

@@ -10,29 +10,41 @@ const Editor=(()=>{
     return{from:lineStart(v,s),to:lineEnd(v,e>s&&v[e-1]==='\n'?e-1:e)};
   }
 
-  /* Tab / Shift+Tab */
+  const ITEM=/^[ \t]*([-*+]|\d+[.)])[ \t]/,RULE=/^\s*([-*_])(\s*\1){2,}\s*$/;
+  const inFence=(v,ls)=>(v.slice(0,ls).match(/^```/gm)||[]).length%2===1;   // linha dentro de bloco ```
+  const OUTDENT=/^(\t| {1,4})/;
+
+  /* Tab / Shift+Tab; num item de lista, Tab desce o item inteiro um nível */
   function tab(v,s,e,shift){
     const multi=v.slice(s,e).indexOf('\n')>=0;
-    if(!shift&&!multi)return edit(s,e,'\t',s+1);
+    if(!shift&&!multi){
+      const ls=lineStart(v,s),line=v.slice(ls,lineEnd(v,s));
+      if(ITEM.test(line)&&!RULE.test(line)&&!inFence(v,ls))return edit(ls,ls,'\t',s+1,e+1);
+      return edit(s,e,'\t',s+1);
+    }
     const b=block(v,s,e),old=v.slice(b.from,b.to),lines=old.split('\n');
-    const neu=lines.map(l=>shift?l.replace(/^(\t| {1,4})/,''):l&&'\t'+l),text=neu.join('\n');
+    const neu=lines.map(l=>shift?l.replace(OUTDENT,''):l&&'\t'+l),text=neu.join('\n');
     if(text===old)return null;
     if(multi)return edit(b.from,b.to,text,b.from,b.from+text.length);
     const cut=lines[0].length-neu[0].length;
     return edit(b.from,b.to,text,Math.max(b.from,s-cut),Math.max(b.from,e-cut));
   }
 
-  /* Enter: repete recuo, citação, marcador, caixa e numeração; item vazio encerra a lista */
+  /* Enter: repete recuo, citação, marcador, caixa e numeração;
+     item vazio sobe um nível e, já no primeiro, encerra a lista */
   const PREFIX=/^([ \t]*)((?:>[ \t]?)*)(?:([-*+]|\d+[.)])([ \t]+)(\[[ xX]\](?:[ \t]+|$))?)?/;
-  const RULE=/^\s*([-*_])(\s*\1){2,}\s*$/;
   function enter(v,s,e){
     if(s!==e)return null;
     const ls=lineStart(v,s),le=lineEnd(v,s),line=v.slice(ls,le);
-    const code=(v.slice(0,ls).match(/^```/gm)||[]).length%2===1,m=line.match(PREFIX);
+    const code=inFence(v,ls),m=line.match(PREFIX);
     const plain=code||RULE.test(line),indent=m[1],quote=plain?'':m[2],mark=plain?'':m[3]||'';
     const full=indent+quote+(mark?mark+m[4]+(m[5]||''):'');
     if(!full||s-ls<full.length)return null;
-    if((quote||mark)&&s===le&&!line.slice(full.length).trim())return edit(ls,le,'',ls);
+    if((quote||mark)&&s===le&&!line.slice(full.length).trim()){
+      if(!mark||!indent)return edit(ls,le,'',ls);
+      const up=line.replace(OUTDENT,'');
+      return edit(ls,le,up,ls+up.length);
+    }
     const num=mark.match(/^(\d+)([.)])$/);
     const next=indent+quote+(mark?(num?(+num[1]+1)+num[2]:mark)+m[4]+(m[5]?'[ ] ':''):'');
     return edit(s,s,'\n'+next,s+1+next.length);
