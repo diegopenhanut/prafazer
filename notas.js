@@ -111,7 +111,11 @@ const Notas=(()=>{
     const flushL=()=>{while(lists.length)closeL()};
     while(i<L.length){
       const l=L[i];let m;
-      if(/^```/.test(l)){flushP();flushL();const code=[];i++;while(i<L.length&&!/^```/.test(L[i]))code.push(L[i++]);i++;out.push('<pre><code>'+esc(code.join('\n'))+'</code></pre>');continue}
+      if(/^```/.test(l)){
+        flushP();flushL();const code=[],lang=l.match(/^```\s*\{?\.?([\w+-]+)/);   // ```ruby, ```{r}
+        i++;while(i<L.length&&!/^```/.test(L[i]))code.push(L[i++]);i++;
+        out.push(`<pre><code${lang?` class="language-${lang[1].toLowerCase()}"`:''}>`+esc(code.join('\n'))+'</code></pre>');continue;
+      }
       if(!l.trim()){flushP();flushL();i++;continue}
       if((m=l.match(/^(#{1,6})\s+(.*)$/))){flushP();flushL();out.push(`<h${m[1].length}>${mdInline(m[2])}</h${m[1].length}>`);i++;continue}
       if(/^\s*([-*_])(\s*\1){2,}\s*$/.test(l)){flushP();flushL();out.push('<hr>');i++;continue}
@@ -130,6 +134,26 @@ const Notas=(()=>{
     }
     flushP();flushL();
     return out.join('\n');
+  }
+
+  /* destaque de código: prism.js só é carregado quando uma nota em “Ver” tem bloco com linguagem */
+  let prism=null;
+  function loadPrism(){
+    if(!prism)prism=new Promise((res,rej)=>{
+      window.Prism={manual:true};                    // não varrer a página sozinho
+      const s=document.createElement('script');s.src='prism.js';
+      s.onload=()=>res(window.Prism);s.onerror=()=>{prism=null;s.remove();rej(new Error('prism.js'))};
+      document.head.appendChild(s);
+    });
+    return prism;
+  }
+  function renderView(texto){
+    viewEl.innerHTML=md(texto);
+    const blocks=viewEl.querySelectorAll('pre code[class^="language-"]');
+    if(!blocks.length)return;
+    loadPrism().then(P=>blocks.forEach(c=>{
+      if(c.isConnected&&c.textContent.length<=100000)P.highlightElement(c);   // blocos enormes ficam sem cor
+    })).catch(e=>console.warn(e));
   }
 
   /* ---------- Dropbox ---------- */
@@ -294,6 +318,14 @@ const Notas=(()=>{
 #notas #n-view h1{font-size:1.5em} #notas #n-view h2{font-size:1.25em} #notas #n-view h3{font-size:1.1em}
 #notas #n-view code{background:var(--head);padding:1px 4px;border-radius:3px}
 #notas #n-view pre{background:var(--head);padding:10px;border-radius:4px;overflow-x:auto;tab-size:4} #notas #n-view pre code{background:none;padding:0}
+#notas .token.comment,#notas .token.prolog,#notas .token.doctype,#notas .token.cdata{color:var(--dim)}
+#notas .token.keyword,#notas .token.tag,#notas .token.selector,#notas .token.atrule,#notas .token.important,#notas .token.deleted{color:var(--proj)}
+#notas .token.string,#notas .token.char,#notas .token.attr-value,#notas .token.regex,#notas .token.inserted{color:var(--meta)}
+#notas .token.number,#notas .token.boolean,#notas .token.constant,#notas .token.symbol{color:var(--ctx)}
+#notas .token.function,#notas .token.class-name,#notas .token.url{color:var(--link)}
+#notas .token.attr-name,#notas .token.property,#notas .token.variable,#notas .token.builtin,#notas .token.key{color:var(--priB)}
+#notas .token.punctuation,#notas .token.operator{color:var(--fg)}
+#notas .token.title,#notas .token.bold{color:var(--accent);font-weight:700} #notas .token.italic{font-style:italic}
 #notas #n-view blockquote{margin:.6em 0;padding:2px 12px;border-left:3px solid var(--line);color:var(--dim)}
 #notas #n-view a{color:var(--link)} #notas #n-view hr{border:0;border-top:1px solid var(--line)}
 #notas #n-view ul,#notas #n-view ol{padding-left:1.4em}
@@ -377,7 +409,7 @@ body.m #notas.edit #n-new{display:none}`;
         if(p&&p.s!==undefined){p.s=map(p.s);p.e=map(p.e)}
         ta.value=neu;ta.scrollTop=top;
         if(focused)ta.setSelectionRange(s,e);
-        if(mode==='view'){viewEl.innerHTML=md(neu);viewEl.scrollTop=vtop}
+        if(mode==='view'){renderView(neu);viewEl.scrollTop=vtop}
         showLinks(c);
       }
       renderSide();renderList();
@@ -436,7 +468,7 @@ body.m #notas.edit #n-new{display:none}`;
     root.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
     const n=notes.find(x=>x.id===curId);
     ta.style.display=m==='edit'?'':'none';viewEl.style.display=m==='view'?'':'none';
-    if(m==='view')viewEl.innerHTML=md(ta.value);
+    if(m==='view')renderView(ta.value);
     if(m==='edit'&&n&&!isCoarse())ta.focus();
     restorePos();
   }
@@ -449,7 +481,7 @@ body.m #notas.edit #n-new{display:none}`;
   async function tick(ln){                           // caixa marcada na visualização
     const top=viewEl.scrollTop;
     ta.value=Editor.toggleBox(ta.value,ln);editing=true;
-    viewEl.innerHTML=md(ta.value);viewEl.scrollTop=top;
+    renderView(ta.value);viewEl.scrollTop=top;
     await flush();
   }
   const isCoarse=()=>matchMedia('(pointer:coarse)').matches;
